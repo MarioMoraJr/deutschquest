@@ -40,6 +40,7 @@ const els = {
   modelBadge: document.querySelector("#modelBadge"),
   newChatButton: document.querySelector("#newChatButton"),
   suggestVocabButton: document.querySelector("#suggestVocabButton"),
+  toggleSaveWordButton: document.querySelector("#toggleSaveWordButton"),
   vocabSuggestions: document.querySelector("#vocabSuggestions"),
   questTitle: document.querySelector("#questTitle"),
   questScenario: document.querySelector("#questScenario"),
@@ -448,6 +449,11 @@ els.suggestVocabButton.addEventListener("click", async () => {
   }));
 });
 
+els.toggleSaveWordButton.addEventListener("click", () => {
+  const collapsed = els.saveWordForm.classList.toggle("collapsed");
+  els.toggleSaveWordButton.setAttribute("aria-expanded", String(!collapsed));
+});
+
 document.querySelectorAll("[data-article]").forEach(button => {
   button.addEventListener("click", async () => {
     const word = currentDrillWord();
@@ -525,6 +531,8 @@ els.saveWordForm.addEventListener("submit", async event => {
   els.saveGerman.value = "";
   els.saveEnglish.value = "";
   els.saveArticle.value = "";
+  els.saveWordForm.classList.add("collapsed");
+  els.toggleSaveWordButton.setAttribute("aria-expanded", "false");
   renderDrills();
 });
 
@@ -559,7 +567,7 @@ els.backupButton.addEventListener("click", async () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614f`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614g`));
 }
 
 loadApp().catch(error => {
