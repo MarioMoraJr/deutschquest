@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614l">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614l">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614m">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614m">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -61,6 +61,23 @@
               <small>Fast article and word-order rounds.</small>
             </button>
           </div>
+
+          <div class="home-actions">
+            <button id="continueChatButton">Continue Last Chat</button>
+            <button id="generateLessonButton">Generate Lesson</button>
+            <button id="logoutButton">Logout</button>
+          </div>
+
+          <article class="lesson-card collapsed" id="lessonCard">
+            <div class="section-head compact">
+              <h2 id="lessonTitle">Daily lesson</h2>
+              <span id="lessonGoal">A2</span>
+            </div>
+            <p id="lessonWarmup"></p>
+            <div class="lesson-dialogue" id="lessonDialogue"></div>
+            <div class="lesson-vocab" id="lessonVocab"></div>
+            <div class="lesson-drill" id="lessonDrill"></div>
+          </article>
 
           <div class="section-head">
             <h2>Today</h2>
@@ -322,6 +339,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614l" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614m" defer></script>
   </body>
 </html>

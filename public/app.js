@@ -52,6 +52,16 @@ const els = {
   questProgress: document.querySelector("#questProgress"),
   goalProgress: document.querySelector("#goalProgress"),
   scenarioList: document.querySelector("#scenarioList"),
+  continueChatButton: document.querySelector("#continueChatButton"),
+  generateLessonButton: document.querySelector("#generateLessonButton"),
+  logoutButton: document.querySelector("#logoutButton"),
+  lessonCard: document.querySelector("#lessonCard"),
+  lessonTitle: document.querySelector("#lessonTitle"),
+  lessonGoal: document.querySelector("#lessonGoal"),
+  lessonWarmup: document.querySelector("#lessonWarmup"),
+  lessonDialogue: document.querySelector("#lessonDialogue"),
+  lessonVocab: document.querySelector("#lessonVocab"),
+  lessonDrill: document.querySelector("#lessonDrill"),
   chatPanel: document.querySelector("#chatPanel"),
   chatForm: document.querySelector("#chatForm"),
   chatInput: document.querySelector("#chatInput"),
@@ -528,6 +538,67 @@ els.beginRoleplay.addEventListener("click", async () => {
 
 els.newChatButton.addEventListener("click", newChat);
 
+els.continueChatButton.addEventListener("click", () => {
+  state.sessionId = state.sessions[0]?.id || state.sessionId;
+  renderChat();
+  switchView("chatView");
+});
+
+els.logoutButton.addEventListener("click", () => {
+  localStorage.removeItem(AUTH_KEY);
+  state.token = "";
+  showLogin("Logged out.");
+});
+
+els.generateLessonButton.addEventListener("click", async () => {
+  els.generateLessonButton.textContent = "Generating...";
+  try {
+    const result = await api("api/lesson/generate", {
+      method: "POST",
+      body: JSON.stringify({ topic: state.currentQuest.title })
+    });
+    renderLesson(result.lesson);
+  } catch (error) {
+    els.lessonCard.classList.remove("collapsed");
+    els.lessonTitle.textContent = "Lesson unavailable";
+    els.lessonWarmup.textContent = error.message;
+  } finally {
+    els.generateLessonButton.textContent = "Generate Lesson";
+  }
+});
+
+function renderLesson(lesson) {
+  els.lessonCard.classList.remove("collapsed");
+  els.lessonTitle.textContent = lesson.title || "Daily lesson";
+  els.lessonGoal.textContent = state.profile.level;
+  els.lessonWarmup.textContent = lesson.goal || lesson.warmup || "Practice this short lesson.";
+  const dialogue = Array.isArray(lesson.dialogue) ? lesson.dialogue : [];
+  els.lessonDialogue.replaceChildren(...dialogue.map(line => {
+    const item = document.createElement("p");
+    item.textContent = line;
+    return item;
+  }));
+  const vocab = Array.isArray(lesson.vocabulary) ? lesson.vocabulary : [];
+  els.lessonVocab.replaceChildren(...vocab.map(word => {
+    const item = document.createElement("button");
+    item.type = "button";
+    item.innerHTML = `<strong>${word.german || ""}</strong><small>${word.english || ""}</small>`;
+    item.addEventListener("click", async () => {
+      const saved = await api("api/words", {
+        method: "POST",
+        body: JSON.stringify({ german: word.german, english: word.english, article: word.article || "" })
+      });
+      state.words.unshift(saved);
+      item.disabled = true;
+      item.querySelector("small").textContent = "Saved";
+      renderDrills();
+    });
+    return item;
+  }));
+  const drill = lesson.drill || {};
+  els.lessonDrill.textContent = drill.prompt ? `Drill: ${drill.prompt}` : "";
+}
+
 els.toggleHistoryButton.addEventListener("click", () => {
   const collapsed = els.chatHistory.classList.toggle("collapsed");
   els.toggleHistoryButton.setAttribute("aria-expanded", String(!collapsed));
@@ -802,7 +873,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614l`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614m`));
 }
 
 loadApp().catch(error => {

@@ -575,6 +575,36 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/lesson/generate") {
+    const body = await readBody(req);
+    const topic = String(body.topic || state.currentQuest.title || "daily German practice").trim();
+    const prompt = [
+      `Create a compact ${state.profile.level} German lesson for: ${topic}.`,
+      "Return strict JSON only with keys: title, goal, warmup, dialogue, vocabulary, drill.",
+      "warmup is one short instruction string.",
+      "dialogue is an array of 4 short German lines.",
+      "vocabulary is an array of 4 objects with german and english.",
+      "drill is an object with prompt and answer."
+    ].join("\n");
+    const raw = await askOllama([{ role: "user", content: prompt }], state.profile.level, "tool");
+    const json = raw.match(/\{[\s\S]*\}/)?.[0] || "";
+    let lesson;
+    try {
+      lesson = JSON.parse(json);
+    } catch {
+      lesson = {
+        title: topic,
+        goal: "Practice one useful conversation.",
+        warmup: "Read the dialogue aloud once.",
+        dialogue: raw.split(/\r?\n/).filter(Boolean).slice(0, 4),
+        vocabulary: [],
+        drill: { prompt: "Say one sentence from the lesson.", answer: "" }
+      };
+    }
+    sendJson(res, 200, { lesson, raw });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/backup") {
     const backupPath = createBackup();
     sendJson(res, 200, { backupPath });

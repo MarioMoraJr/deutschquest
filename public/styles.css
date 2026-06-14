@@ -598,6 +598,71 @@ p {
   scroll-snap-type: x mandatory;
 }
 
+.home-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.home-actions button {
+  min-height: 42px;
+  padding: 0 8px;
+  border-radius: 8px;
+  background: rgba(36, 23, 17, 0.9);
+  color: #fff7e6;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.lesson-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.lesson-card.collapsed {
+  display: none;
+}
+
+.lesson-dialogue {
+  display: grid;
+  gap: 7px;
+}
+
+.lesson-dialogue p {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #fffaf0;
+}
+
+.lesson-vocab {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lesson-vocab button {
+  display: grid;
+  min-height: 58px;
+  align-content: center;
+  padding: 8px;
+  border-radius: 8px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--teal);
+  text-align: left;
+}
+
+.lesson-vocab small,
+.lesson-drill {
+  color: var(--muted);
+}
+
 .scenario-card {
   display: grid;
   gap: 6px;
