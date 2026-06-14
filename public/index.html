@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614i">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614i">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614j">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614j">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -32,6 +32,7 @@
 
       <main>
         <section class="view active" id="homeView">
+          <div class="status-strip" id="statusStrip">Checking tutor...</div>
           <div class="quest-hero">
             <div class="quest-copy">
               <p class="eyebrow">Daily Quest</p>
@@ -166,6 +167,44 @@
           <div class="word-list" id="wordList"></div>
         </section>
 
+        <section class="view" id="guidesView">
+          <div class="section-head">
+            <h2>Guides</h2>
+            <span>Grammar</span>
+          </div>
+          <article class="guide-card">
+            <p class="eyebrow">Conjugation</p>
+            <h2>Present tense endings</h2>
+            <p>Start with the verb stem, then swap the ending based on the subject.</p>
+            <div class="conjugation-table">
+              <div><strong>ich</strong><span>-e</span><small>ich mache</small></div>
+              <div><strong>du</strong><span>-st</span><small>du machst</small></div>
+              <div><strong>er/sie/es</strong><span>-t</span><small>er macht</small></div>
+              <div><strong>wir</strong><span>-en</span><small>wir machen</small></div>
+              <div><strong>ihr</strong><span>-t</span><small>ihr macht</small></div>
+              <div><strong>sie/Sie</strong><span>-en</span><small>sie machen</small></div>
+            </div>
+          </article>
+          <article class="guide-card">
+            <h2>What to swap</h2>
+            <div class="rule-list">
+              <div><strong>1</strong><p>Remove <b>-en</b> from the infinitive: machen -> mach</p></div>
+              <div><strong>2</strong><p>Add the subject ending: ich mache, du machst, er macht</p></div>
+              <div><strong>3</strong><p>If the stem ends in <b>-t</b> or <b>-d</b>, add an extra <b>e</b>: du arbeitest</p></div>
+              <div><strong>4</strong><p>Some strong verbs change vowel: fahren -> du fährst, er fährt</p></div>
+            </div>
+          </article>
+          <article class="guide-card">
+            <h2>Practice</h2>
+            <p id="conjPrompt">machen + ich</p>
+            <div class="input-row">
+              <input id="conjInput" autocomplete="off" placeholder="Type answer">
+              <button id="checkConjButton">Check</button>
+            </div>
+            <strong id="conjFeedback">Use the chart above.</strong>
+          </article>
+        </section>
+
         <section class="view" id="toolsView">
           <div class="section-head">
             <h2>AI Tools</h2>
@@ -219,9 +258,10 @@
         <button class="tab" data-view="chatView"><span>C</span><small>Chat</small></button>
         <button class="tab" data-view="roleplayView"><span>Q</span><small>Quest</small></button>
         <button class="tab" data-view="drillsView"><span>XP</span><small>Drills</small></button>
+        <button class="tab" data-view="guidesView"><span>G</span><small>Guides</small></button>
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614i" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614j" defer></script>
   </body>
 </html>

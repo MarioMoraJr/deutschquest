@@ -150,6 +150,7 @@ p {
 .quest-hero,
 .mission-card,
 .drill-card,
+.guide-card,
 .tool-box,
 .tool-output {
   display: grid;
@@ -161,6 +162,23 @@ p {
   box-shadow: 0 18px 50px rgba(80, 46, 26, 0.13);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+
+.status-strip {
+  margin-bottom: 12px;
+  padding: 9px 12px;
+  border: 1px solid rgba(15, 118, 110, 0.18);
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--teal);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.status-strip.warn {
+  border-color: rgba(190, 18, 60, 0.22);
+  background: rgba(190, 18, 60, 0.08);
+  color: #be123c;
 }
 
 .save-word-form,
@@ -367,8 +385,75 @@ p {
 
 .quest-copy h2,
 .mission-card h2,
-.drill-card h2 {
+.drill-card h2,
+.guide-card h2 {
   font-size: 1.85rem;
+}
+
+.guide-card {
+  margin-bottom: 14px;
+}
+
+.conjugation-table {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.conjugation-table div,
+.rule-list div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.conjugation-table span {
+  color: var(--orange);
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.conjugation-table small,
+.rule-list p {
+  color: var(--muted);
+}
+
+.rule-list {
+  display: grid;
+  gap: 8px;
+}
+
+.rule-list div {
+  grid-template-columns: 30px minmax(0, 1fr);
+  align-items: start;
+}
+
+.rule-list strong {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--orange);
+  color: #fff;
+}
+
+.input-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.input-row button {
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 950;
 }
 
 .progress-wrap {
@@ -674,7 +759,7 @@ select {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   width: min(100%, 500px);
   margin: 0 auto;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));

@@ -34,6 +34,7 @@ const els = {
   passwordInput: document.querySelector("#passwordInput"),
   loginError: document.querySelector("#loginError"),
   greeting: document.querySelector("#greeting"),
+  statusStrip: document.querySelector("#statusStrip"),
   xp: document.querySelector("#xp"),
   streak: document.querySelector("#streak"),
   levelBadge: document.querySelector("#levelBadge"),
@@ -77,8 +78,22 @@ const els = {
   dailyGoalInput: document.querySelector("#dailyGoalInput"),
   settingsStatus: document.querySelector("#settingsStatus"),
   backupButton: document.querySelector("#backupButton"),
-  backupStatus: document.querySelector("#backupStatus")
+  backupStatus: document.querySelector("#backupStatus"),
+  conjPrompt: document.querySelector("#conjPrompt"),
+  conjInput: document.querySelector("#conjInput"),
+  checkConjButton: document.querySelector("#checkConjButton"),
+  conjFeedback: document.querySelector("#conjFeedback")
 };
+
+const conjugationDrills = [
+  { verb: "machen", subject: "ich", answer: "mache" },
+  { verb: "machen", subject: "du", answer: "machst" },
+  { verb: "arbeiten", subject: "du", answer: "arbeitest" },
+  { verb: "fahren", subject: "er", answer: "fährt" },
+  { verb: "lernen", subject: "wir", answer: "lernen" }
+];
+
+let conjugationIndex = 0;
 
 function authHeaders() {
   return state.token ? { Authorization: `Bearer ${state.token}` } : {};
@@ -311,7 +326,19 @@ async function loadApp() {
   state.roleplayPrompt = state.scenarios[0]?.prompt || "";
   els.modelBadge.textContent = data.ollama?.model || "Ollama";
   render();
+  checkHealth();
   setLoaded();
+}
+
+async function checkHealth() {
+  try {
+    const health = await api("api/health");
+    els.statusStrip.textContent = health.ollama ? `Tutor online · ${health.model}` : "Tutor offline · Ollama not reachable";
+    els.statusStrip.classList.toggle("warn", !health.ollama);
+  } catch {
+    els.statusStrip.textContent = "Tutor status unavailable";
+    els.statusStrip.classList.add("warn");
+  }
 }
 
 async function chooseScenario(id) {
@@ -622,11 +649,31 @@ els.backupButton.addEventListener("click", async () => {
   }
 });
 
+function renderConjugationDrill() {
+  const drill = conjugationDrills[conjugationIndex % conjugationDrills.length];
+  els.conjPrompt.textContent = `${drill.verb} + ${drill.subject}`;
+  els.conjInput.value = "";
+}
+
+els.checkConjButton.addEventListener("click", () => {
+  const drill = conjugationDrills[conjugationIndex % conjugationDrills.length];
+  const answer = els.conjInput.value.trim().toLocaleLowerCase("de-DE");
+  if (answer === drill.answer.toLocaleLowerCase("de-DE")) {
+    els.conjFeedback.textContent = `Richtig: ${drill.subject} ${drill.answer}`;
+    conjugationIndex += 1;
+    setTimeout(renderConjugationDrill, 900);
+  } else {
+    els.conjFeedback.textContent = `Try: ${drill.subject} ${drill.answer}`;
+  }
+});
+
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614i`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614j`));
 }
 
 loadApp().catch(error => {
   setLoaded();
   if (!state.authRequired) document.body.innerHTML = `<main class="app"><h1>DeutschQuest</h1><p>${error.message}</p></main>`;
 });
+
+renderConjugationDrill();

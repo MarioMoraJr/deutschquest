@@ -518,6 +518,18 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/health") {
+    let ollama = false;
+    try {
+      const response = await fetch(`${OLLAMA_URL}/api/tags`);
+      ollama = response.ok;
+    } catch {
+      ollama = false;
+    }
+    sendJson(res, 200, { ok: true, ollama, model: OLLAMA_MODEL, basePath: BASE_PATH });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/backup") {
     const backupPath = createBackup();
     sendJson(res, 200, { backupPath });
