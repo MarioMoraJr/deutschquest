@@ -4,10 +4,10 @@
   "private": false,
   "description": "Mobile-first German learning app with local Ollama tutoring.",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node server.js"
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning server.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   }
 }

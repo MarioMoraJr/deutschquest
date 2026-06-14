@@ -4,6 +4,12 @@ Mobile-first German learning app served from this server on port `3100`.
 
 It combines a warm quest UI with arcade-style drills and local AI tutoring through Ollama.
 
+Project location:
+
+```text
+C:\Users\mario\server\deutschquest
+```
+
 ## Run
 
 ```powershell
@@ -72,9 +78,9 @@ Keep the app on a trusted private network even with the app password enabled. It
 
 ## Storage
 
-The app currently persists runtime data to `data/deutschquest.json`.
+The app persists runtime data to `data/deutschquest.sqlite`.
 
-SQLite is the recommended next storage upgrade before adding multiple users, richer progress history, or long-term chat archives. It keeps deployment simple while giving safer writes, migrations, and easier querying than JSON.
+The old JSON file, if present, is used only as first-run migration seed data. Runtime SQLite files are ignored by git.
 
 ## Docker
 

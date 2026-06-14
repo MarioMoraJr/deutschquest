@@ -3,6 +3,7 @@ const fs = require("fs/promises");
 const fsSync = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const { DatabaseSync } = require("node:sqlite");
 
 const ENV_FILE = path.join(__dirname, ".env");
 
@@ -29,7 +30,8 @@ const APP_PASSWORD = process.env.APP_PASSWORD || "";
 const BASE_PATH = normalizeBasePath(process.env.BASE_PATH || "");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = path.join(__dirname, "data");
-const DATA_FILE = path.join(DATA_DIR, "deutschquest.json");
+const JSON_DATA_FILE = path.join(DATA_DIR, "deutschquest.json");
+const DB_FILE = path.join(DATA_DIR, "deutschquest.sqlite");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -106,6 +108,12 @@ const defaultState = {
   ]
 };
 
+fsSync.mkdirSync(DATA_DIR, { recursive: true });
+const db = new DatabaseSync(DB_FILE);
+db.exec("PRAGMA journal_mode = WAL");
+db.exec("PRAGMA foreign_keys = ON");
+initializeDatabase();
+
 function normalizeBasePath(value) {
   const cleaned = String(value || "").trim().replace(/^\/+|\/+$/g, "");
   return cleaned ? `/${cleaned}` : "";
@@ -144,24 +152,127 @@ function authToken(req) {
   return header.startsWith("Bearer ") ? header.slice(7) : "";
 }
 
-async function ensureDataFile() {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  try {
-    await fs.access(DATA_FILE);
-  } catch {
-    await writeState(defaultState);
+function initializeDatabase() {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS profile (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      name TEXT NOT NULL,
+      level TEXT NOT NULL,
+      streak INTEGER NOT NULL,
+      xp INTEGER NOT NULL,
+      daily_goal INTEGER NOT NULL,
+      completed_today INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS current_quest (
+      id INTEGER PRIMARY KEY CHECK (id = 1),
+      title TEXT NOT NULL,
+      scenario TEXT NOT NULL,
+      progress INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS words (
+      id TEXT PRIMARY KEY,
+      german TEXT NOT NULL,
+      english TEXT NOT NULL,
+      article TEXT NOT NULL,
+      strength INTEGER NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS scenarios (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      place TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      prompt TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sessions (
+      id TEXT PRIMARY KEY,
+      mode TEXT NOT NULL,
+      title TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      position INTEGER NOT NULL
+    );
+  `);
+
+  const existing = db.prepare("SELECT COUNT(*) AS count FROM profile").get();
+  if (existing.count > 0) return;
+
+  let seed = defaultState;
+  if (fsSync.existsSync(JSON_DATA_FILE)) {
+    try {
+      seed = { ...defaultState, ...JSON.parse(fsSync.readFileSync(JSON_DATA_FILE, "utf8")) };
+    } catch {
+      seed = defaultState;
+    }
   }
+  writeStateSync(seed);
 }
 
 async function readState() {
-  await ensureDataFile();
-  const state = JSON.parse(await fs.readFile(DATA_FILE, "utf8"));
+  const profile = db.prepare("SELECT * FROM profile WHERE id = 1").get();
+  const quest = db.prepare("SELECT * FROM current_quest WHERE id = 1").get();
+  const words = db.prepare("SELECT * FROM words ORDER BY rowid").all();
+  const scenarios = db.prepare("SELECT * FROM scenarios ORDER BY rowid").all();
+  const sessionRows = db.prepare("SELECT * FROM sessions ORDER BY datetime(created_at) DESC").all();
+  const messageRows = db.prepare("SELECT * FROM messages ORDER BY position, id").all();
+
+  const state = {
+    profile: profile ? {
+      name: profile.name,
+      level: profile.level,
+      streak: profile.streak,
+      xp: profile.xp,
+      dailyGoal: profile.daily_goal,
+      completedToday: profile.completed_today
+    } : defaultState.profile,
+    currentQuest: quest ? {
+      title: quest.title,
+      scenario: quest.scenario,
+      progress: quest.progress
+    } : defaultState.currentQuest,
+    words: words.map(word => ({
+      id: word.id,
+      german: word.german,
+      english: word.english,
+      article: word.article,
+      strength: word.strength
+    })),
+    scenarios: scenarios.map(scenario => ({
+      id: scenario.id,
+      title: scenario.title,
+      place: scenario.place,
+      goal: scenario.goal,
+      prompt: scenario.prompt
+    })),
+    sessions: sessionRows.map(session => ({
+      id: session.id,
+      mode: session.mode,
+      title: session.title,
+      createdAt: session.created_at,
+      messages: messageRows
+        .filter(message => message.session_id === session.id)
+        .map(message => ({ role: message.role, content: message.content }))
+    }))
+  };
+
   state.profile = { ...defaultState.profile, ...(state.profile || {}) };
   state.words = Array.isArray(state.words) ? state.words : defaultState.words;
   state.words = state.words.map(word => ({
     ...word,
     german: word.german === "das Broetchen" ? "das Brötchen" : word.german
   }));
+  for (const word of defaultState.words) {
+    if (!state.words.some(item => item.german === word.german)) state.words.push(word);
+  }
   state.scenarios = Array.isArray(state.scenarios) ? state.scenarios : defaultState.scenarios;
   for (const scenario of defaultState.scenarios) {
     if (!state.scenarios.some(item => item.id === scenario.id)) state.scenarios.push(scenario);
@@ -181,8 +292,67 @@ async function readState() {
 }
 
 async function writeState(state) {
-  await fs.mkdir(DATA_DIR, { recursive: true });
-  await fs.writeFile(DATA_FILE, JSON.stringify(state, null, 2));
+  writeStateSync(state);
+}
+
+function writeStateSync(state) {
+  const normalized = {
+    ...defaultState,
+    ...state,
+    profile: { ...defaultState.profile, ...(state.profile || {}) },
+    currentQuest: { ...defaultState.currentQuest, ...(state.currentQuest || {}) },
+    words: Array.isArray(state.words) ? state.words : defaultState.words,
+    scenarios: Array.isArray(state.scenarios) ? state.scenarios : defaultState.scenarios,
+    sessions: Array.isArray(state.sessions) ? state.sessions : defaultState.sessions
+  };
+
+  db.exec("BEGIN");
+  try {
+    db.exec("DELETE FROM messages; DELETE FROM sessions; DELETE FROM scenarios; DELETE FROM words; DELETE FROM current_quest; DELETE FROM profile;");
+    db.prepare(`
+      INSERT INTO profile (id, name, level, streak, xp, daily_goal, completed_today)
+      VALUES (1, ?, ?, ?, ?, ?, ?)
+    `).run(
+      normalized.profile.name,
+      normalized.profile.level,
+      normalized.profile.streak,
+      normalized.profile.xp,
+      normalized.profile.dailyGoal,
+      normalized.profile.completedToday
+    );
+    db.prepare(`
+      INSERT INTO current_quest (id, title, scenario, progress)
+      VALUES (1, ?, ?, ?)
+    `).run(
+      normalized.currentQuest.title,
+      normalized.currentQuest.scenario,
+      normalized.currentQuest.progress
+    );
+
+    const insertWord = db.prepare("INSERT INTO words (id, german, english, article, strength) VALUES (?, ?, ?, ?, ?)");
+    normalized.words.forEach(word => {
+      insertWord.run(word.id || crypto.randomUUID(), word.german || "", word.english || "", word.article || "", word.strength || 0);
+    });
+
+    const insertScenario = db.prepare("INSERT INTO scenarios (id, title, place, goal, prompt) VALUES (?, ?, ?, ?, ?)");
+    normalized.scenarios.forEach(scenario => {
+      insertScenario.run(scenario.id, scenario.title, scenario.place, scenario.goal, scenario.prompt);
+    });
+
+    const insertSession = db.prepare("INSERT INTO sessions (id, mode, title, created_at) VALUES (?, ?, ?, ?)");
+    const insertMessage = db.prepare("INSERT INTO messages (session_id, role, content, position) VALUES (?, ?, ?, ?)");
+    normalized.sessions.forEach(session => {
+      const id = session.id || crypto.randomUUID();
+      insertSession.run(id, session.mode || "tutor", session.title || "Tutor chat", session.createdAt || new Date().toISOString());
+      (session.messages || []).forEach((message, index) => {
+        insertMessage.run(id, message.role || "assistant", message.content || "", index);
+      });
+    });
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
 }
 
 function sendJson(res, status, payload) {
