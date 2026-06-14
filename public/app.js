@@ -30,6 +30,34 @@ const orderDrills = [
   { prompt: "Can you say that more slowly?", expected: "Kannst du das langsamer sagen" }
 ];
 
+const starterLessons = [
+  {
+    title: "Survival Words",
+    topic: "German survival words: hello, yes, no, please, thank you, I, you",
+    goal: "Use tiny words before grammar gets involved."
+  },
+  {
+    title: "I Want / I Have",
+    topic: "German beginner sentence pattern: ich moechte, ich habe, ich bin",
+    goal: "Build your first useful sentences."
+  },
+  {
+    title: "der die das",
+    topic: "German articles der die das for absolute beginners",
+    goal: "Understand why nouns carry little tags."
+  },
+  {
+    title: "Questions",
+    topic: "German beginner questions with wo, was, wie, and yes no questions",
+    goal: "Ask simple things without freezing."
+  },
+  {
+    title: "Tone Words",
+    topic: "German tone words schon, doch, mal, ja for beginners",
+    goal: "Notice the small words that change meaning."
+  }
+];
+
 const els = {
   app: document.querySelector(".app"),
   loginView: document.querySelector("#loginView"),
@@ -59,6 +87,7 @@ const els = {
   lessonTopicInput: document.querySelector("#lessonTopicInput"),
   generateLessonButton: document.querySelector("#generateLessonButton"),
   lessonCoachButton: document.querySelector("#lessonCoachButton"),
+  lessonPath: document.querySelector("#lessonPath"),
   logoutButton: document.querySelector("#logoutButton"),
   lessonCard: document.querySelector("#lessonCard"),
   lessonTitle: document.querySelector("#lessonTitle"),
@@ -435,6 +464,27 @@ function render() {
   renderChat();
   renderDrills();
   renderPastLessons();
+  renderLessonPath();
+}
+
+function renderLessonPath() {
+  if (!els.lessonPath) return;
+  els.lessonPath.replaceChildren(...starterLessons.map((lesson, index) => {
+    const card = document.createElement("article");
+    card.className = "path-step";
+    card.innerHTML = `
+      <span>${index + 1}</span>
+      <div>
+        <h3>${lesson.title}</h3>
+        <p>${lesson.goal}</p>
+      </div>
+      <div class="path-actions">
+        <button data-path-coach="${index}">Teach</button>
+        <button data-path-generate="${index}">Make lesson</button>
+      </div>
+    `;
+    return card;
+  }));
 }
 
 async function loadConfig() {
@@ -710,6 +760,10 @@ els.generateLessonButton.addEventListener("click", async () => {
 
 els.lessonCoachButton.addEventListener("click", async () => {
   const topic = els.lessonTopicInput.value.trim() || "German from zero";
+  await startLessonCoach(topic);
+});
+
+async function startLessonCoach(topic) {
   const result = await api("api/chat/new", {
     method: "POST",
     body: JSON.stringify({ mode: "lesson", title: `Lesson Coach: ${topic}` })
@@ -719,6 +773,36 @@ els.lessonCoachButton.addEventListener("click", async () => {
   renderChat();
   switchView("chatView");
   await sendChat(`Teach me a beginner-friendly lesson about ${topic}. Start by defining the words I need first, then give me one tiny practice turn.`, "lesson");
+}
+
+async function generateLessonForTopic(topic) {
+  els.generateLessonButton.textContent = "Generating...";
+  const result = await api("api/lesson/generate", {
+    method: "POST",
+    body: JSON.stringify({ topic })
+  });
+  state.lessons = [result.lesson, ...state.lessons.filter(item => item.id !== result.lesson.id)];
+  renderLesson(result.lesson);
+  els.generateLessonButton.textContent = "Generate Lesson";
+}
+
+els.lessonPath.addEventListener("click", async event => {
+  const coach = event.target.closest("[data-path-coach]");
+  const generate = event.target.closest("[data-path-generate]");
+  if (!coach && !generate) return;
+  const lesson = starterLessons[Number((coach || generate).dataset.pathCoach ?? (coach || generate).dataset.pathGenerate)];
+  if (!lesson) return;
+  if (coach) await startLessonCoach(lesson.topic);
+  if (generate) {
+    try {
+      await generateLessonForTopic(lesson.topic);
+    } catch (error) {
+      els.lessonCard.classList.remove("collapsed");
+      els.lessonTitle.textContent = "Lesson unavailable";
+      els.lessonWarmup.textContent = error.message;
+      els.generateLessonButton.textContent = "Generate Lesson";
+    }
+  }
 });
 
 function renderLesson(lesson) {
@@ -1241,7 +1325,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614s`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614t`));
 }
 
 loadApp().catch(error => {
