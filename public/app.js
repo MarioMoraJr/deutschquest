@@ -1,4 +1,9 @@
 const AUTH_KEY = "deutschquest_token";
+const BASE_PATH = (window.DEUTSCHQUEST_BASE_PATH || "").replace(/\/$/, "");
+
+function apiPath(path) {
+  return `${BASE_PATH}/${path.replace(/^\/+/, "")}`;
+}
 
 const state = {
   token: localStorage.getItem(AUTH_KEY) || "",
@@ -56,7 +61,7 @@ function authHeaders() {
 }
 
 async function api(path, options = {}) {
-  const response = await fetch(path, {
+  const response = await fetch(apiPath(path), {
     headers: {
       "Content-Type": "application/json",
       ...authHeaders(),
@@ -228,7 +233,7 @@ async function sendChat(message, mode = "tutor") {
   els.chatPanel.append(pending);
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
 
-  const response = await fetch("api/chat/stream", {
+  const response = await fetch(apiPath("api/chat/stream"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -387,7 +392,7 @@ els.settingsForm.addEventListener("submit", async event => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614c"));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614d`));
 }
 
 loadApp().catch(error => {

@@ -678,20 +678,29 @@ async function serveStatic(req, res, url) {
   }
 
   try {
-    const file = await fs.readFile(filePath);
     const ext = path.extname(filePath);
+    if (ext === ".html") {
+      const html = await fs.readFile(filePath, "utf8");
+      res.writeHead(200, {
+        "Content-Type": MIME_TYPES[".html"],
+        "Cache-Control": "no-store"
+      });
+      res.end(html.replaceAll("__BASE_PATH__", BASE_PATH || ""));
+      return;
+    }
+    const file = await fs.readFile(filePath);
     res.writeHead(200, {
       "Content-Type": MIME_TYPES[ext] || "application/octet-stream",
       "Cache-Control": ext === ".html" ? "no-store" : "public, max-age=3600"
     });
     res.end(file);
   } catch {
-    const index = await fs.readFile(path.join(PUBLIC_DIR, "index.html"));
+    const index = await fs.readFile(path.join(PUBLIC_DIR, "index.html"), "utf8");
     res.writeHead(200, {
       "Content-Type": MIME_TYPES[".html"],
       "Cache-Control": "no-store"
     });
-    res.end(index);
+    res.end(index.replaceAll("__BASE_PATH__", BASE_PATH || ""));
   }
 }
 
