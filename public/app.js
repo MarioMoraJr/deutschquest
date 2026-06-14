@@ -203,7 +203,7 @@ els.toolForm.addEventListener("submit", async event => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js"));
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614"));
 }
 
 loadApp().catch(error => {

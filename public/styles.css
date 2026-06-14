@@ -25,6 +25,7 @@ body {
     radial-gradient(circle at 95% 12%, rgba(34, 211, 238, 0.28), transparent 14rem),
     linear-gradient(155deg, #fff7e6 0%, #ffe0d4 44%, #dcf7f1 100%);
   color: var(--ink);
+  -webkit-font-smoothing: antialiased;
 }
 
 button, input, textarea, select {
@@ -34,6 +35,9 @@ button, input, textarea, select {
 button {
   border: 0;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .app {
@@ -113,6 +117,7 @@ p {
   background: var(--surface);
   box-shadow: 0 18px 50px rgba(80, 46, 26, 0.13);
   backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 
 .quest-copy h2,
@@ -142,12 +147,15 @@ p {
 }
 
 .primary {
+  display: grid;
+  place-items: center;
   min-height: 48px;
   padding: 0 16px;
   border-radius: 999px;
   background: linear-gradient(120deg, var(--orange), var(--rose), var(--violet));
   color: #fff;
   font-weight: 950;
+  text-align: center;
 }
 
 .mode-grid,
@@ -168,6 +176,8 @@ p {
   background: rgba(255, 255, 255, 0.64);
   color: var(--ink);
   text-align: left;
+  appearance: none;
+  -webkit-appearance: none;
 }
 
 .mode-card.candy {
@@ -193,6 +203,7 @@ p {
   background: var(--ink);
   color: #fff;
   font-weight: 950;
+  font-size: 0.82rem;
 }
 
 .mode-card.candy .mode-icon {
@@ -358,6 +369,7 @@ select {
   border-top: 1px solid rgba(91, 55, 33, 0.14);
   background: rgba(255, 250, 240, 0.86);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .tab {
@@ -373,7 +385,11 @@ select {
 }
 
 .tab span {
-  font-size: 1.15rem;
+  display: grid;
+  width: 26px;
+  height: 22px;
+  place-items: center;
+  font-size: 0.82rem;
   line-height: 1;
 }
 

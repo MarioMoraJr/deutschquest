@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
-    <link rel="manifest" href="manifest.webmanifest">
-    <link rel="stylesheet" href="styles.css">
+    <link rel="manifest" href="manifest.webmanifest?v=20260614">
+    <link rel="stylesheet" href="styles.css?v=20260614">
   </head>
   <body>
     <div class="app">
@@ -40,7 +40,7 @@
               <small>Talk, get corrections, save words.</small>
             </button>
             <button class="mode-card candy" data-jump="drillsView">
-              <span class="mode-icon">⚡</span>
+              <span class="mode-icon">XP</span>
               <strong>Arcade Drills</strong>
               <small>Fast article and word-order rounds.</small>
             </button>
@@ -77,7 +77,7 @@
           <div class="chat-panel" id="chatPanel"></div>
           <form class="composer" id="chatForm">
             <input id="chatInput" autocomplete="off" placeholder="Reply in German...">
-            <button aria-label="Send message">➤</button>
+            <button aria-label="Send message">Go</button>
           </form>
         </section>
 
@@ -91,7 +91,7 @@
           <div class="quest-list">
             <article class="quest-row"><span class="coin">1</span><div><h3>Ask what is fresh</h3><p>Was ist heute frisch?</p></div><strong>new</strong></article>
             <article class="quest-row"><span class="coin">2</span><div><h3>Order politely</h3><p>Ich haette gern zwei Broetchen.</p></div><strong>A2</strong></article>
-            <article class="quest-row"><span class="coin">3</span><div><h3>Add a coffee</h3><p>Use “einen Kaffee” correctly.</p></div><strong>fix</strong></article>
+            <article class="quest-row"><span class="coin">3</span><div><h3>Add a coffee</h3><p>Use "einen Kaffee" correctly.</p></div><strong>fix</strong></article>
           </div>
         </section>
 
@@ -134,13 +134,13 @@
       </main>
 
       <nav class="tabbar" aria-label="Main navigation">
-        <button class="tab active" data-view="homeView"><span>⌂</span><small>Home</small></button>
-        <button class="tab" data-view="chatView"><span>✎</span><small>Chat</small></button>
-        <button class="tab" data-view="roleplayView"><span>★</span><small>Quest</small></button>
-        <button class="tab" data-view="drillsView"><span>⚡</span><small>Drills</small></button>
+        <button class="tab active" data-view="homeView"><span>H</span><small>Home</small></button>
+        <button class="tab" data-view="chatView"><span>C</span><small>Chat</small></button>
+        <button class="tab" data-view="roleplayView"><span>Q</span><small>Quest</small></button>
+        <button class="tab" data-view="drillsView"><span>XP</span><small>Drills</small></button>
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="app.js" defer></script>
+    <script src="app.js?v=20260614" defer></script>
   </body>
 </html>
