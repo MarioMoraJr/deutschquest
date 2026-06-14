@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614m">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614m">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614n">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614n">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -77,6 +77,14 @@
             <div class="lesson-dialogue" id="lessonDialogue"></div>
             <div class="lesson-vocab" id="lessonVocab"></div>
             <div class="lesson-drill" id="lessonDrill"></div>
+            <button class="primary" id="completeLessonButton">Complete Lesson</button>
+          </article>
+          <article class="lesson-card" id="pastLessonsCard">
+            <div class="section-head compact">
+              <h2>Past Lessons</h2>
+              <span id="lessonCount">0</span>
+            </div>
+            <div class="past-lessons" id="pastLessons"></div>
           </article>
 
           <div class="section-head">
@@ -207,7 +215,13 @@
             <p class="eyebrow">Review Queue</p>
             <h2 id="reviewWord">Saved words</h2>
             <p id="reviewMeaning">Review saved vocabulary by weakest strength first.</p>
-            <button class="primary" id="nextReviewButton">Next Word</button>
+            <div class="review-buttons">
+              <button data-quality="again">Again</button>
+              <button data-quality="hard">Hard</button>
+              <button data-quality="good">Good</button>
+              <button data-quality="easy">Easy</button>
+            </div>
+            <button class="primary" id="nextReviewButton">Skip</button>
           </div>
           <div class="word-list" id="wordList"></div>
         </section>
@@ -339,6 +353,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614m" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614n" defer></script>
   </body>
 </html>

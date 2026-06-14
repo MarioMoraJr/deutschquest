@@ -765,8 +765,8 @@ p {
   display: grid;
   align-content: start;
   gap: 10px;
-  min-height: 300px;
-  max-height: 50svh;
+  min-height: 280px;
+  max-height: 46svh;
   overflow: auto;
   padding: 12px;
   border: 1px solid var(--line);
@@ -797,9 +797,9 @@ p {
 .composer {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 48px;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 8px;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: rgba(255, 250, 240, 0.9);
@@ -842,7 +842,7 @@ select {
 
 #chatView {
   padding-top: 2px;
-  padding-bottom: 12px;
+  padding-bottom: 4px;
 }
 
 #chatView .section-head {
@@ -851,8 +851,8 @@ select {
 
 @media (max-height: 740px) {
   .chat-panel {
-    min-height: 250px;
-    max-height: 42svh;
+    min-height: 230px;
+    max-height: 39svh;
   }
 
   .save-word-form,
@@ -865,6 +865,58 @@ select {
 
 .article-buttons {
   grid-template-columns: repeat(3, 1fr);
+}
+
+.review-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.review-buttons button {
+  min-height: 42px;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: var(--ink);
+  font-weight: 900;
+}
+
+.review-buttons button:nth-child(1) {
+  background: var(--rose);
+  color: #fff;
+}
+
+.review-buttons button:nth-child(3),
+.review-buttons button:nth-child(4) {
+  background: var(--teal);
+  color: #fff;
+}
+
+.past-lessons {
+  display: grid;
+  gap: 8px;
+}
+
+.past-lessons button {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 10px 12px;
+  text-align: left;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.78);
+  color: var(--ink);
+}
+
+.past-lessons button.completed {
+  border-color: rgba(15, 132, 119, 0.35);
+  background: rgba(15, 132, 119, 0.12);
+}
+
+.past-lessons small {
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
 .article-buttons button {
@@ -896,7 +948,7 @@ select {
   grid-template-columns: repeat(7, 1fr);
   width: min(100%, 500px);
   margin: 0 auto;
-  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
   border-top: 1px solid rgba(91, 55, 33, 0.14);
   background: rgba(255, 250, 240, 0.86);
   backdrop-filter: blur(18px);
@@ -905,7 +957,7 @@ select {
 
 .tab {
   display: grid;
-  min-height: 54px;
+  min-height: 50px;
   place-items: center;
   gap: 3px;
   border-radius: 12px;

@@ -11,9 +11,11 @@ const state = {
   profile: { name: "Mario", level: "A2", streak: 0, xp: 0, completedToday: 0 },
   currentQuest: {},
   words: [],
+  lessons: [],
   scenarios: [],
   sessions: [],
   sessionId: null,
+  activeLessonId: null,
   drillIndex: 0,
   roleplayPrompt: "",
   orderIndex: 0,
@@ -62,6 +64,9 @@ const els = {
   lessonDialogue: document.querySelector("#lessonDialogue"),
   lessonVocab: document.querySelector("#lessonVocab"),
   lessonDrill: document.querySelector("#lessonDrill"),
+  completeLessonButton: document.querySelector("#completeLessonButton"),
+  lessonCount: document.querySelector("#lessonCount"),
+  pastLessons: document.querySelector("#pastLessons"),
   chatPanel: document.querySelector("#chatPanel"),
   chatForm: document.querySelector("#chatForm"),
   chatInput: document.querySelector("#chatInput"),
@@ -90,6 +95,7 @@ const els = {
   reviewWord: document.querySelector("#reviewWord"),
   reviewMeaning: document.querySelector("#reviewMeaning"),
   nextReviewButton: document.querySelector("#nextReviewButton"),
+  reviewButtons: document.querySelectorAll("[data-quality]"),
   wordList: document.querySelector("#wordList"),
   toolForm: document.querySelector("#toolForm"),
   toolSelect: document.querySelector("#toolSelect"),
@@ -349,6 +355,7 @@ function render() {
   renderScenarios();
   renderChat();
   renderDrills();
+  renderPastLessons();
 }
 
 async function loadConfig() {
@@ -369,6 +376,7 @@ async function loadApp() {
   state.profile = data.profile;
   state.currentQuest = data.currentQuest;
   state.words = data.words || [];
+  state.lessons = data.lessons || [];
   state.scenarios = data.scenarios || [];
   state.sessions = data.sessions || [];
   state.sessionId = state.sessions[0]?.id || null;
@@ -557,6 +565,7 @@ els.generateLessonButton.addEventListener("click", async () => {
       method: "POST",
       body: JSON.stringify({ topic: state.currentQuest.title })
     });
+    state.lessons = [result.lesson, ...state.lessons.filter(item => item.id !== result.lesson.id)];
     renderLesson(result.lesson);
   } catch (error) {
     els.lessonCard.classList.remove("collapsed");
@@ -568,10 +577,15 @@ els.generateLessonButton.addEventListener("click", async () => {
 });
 
 function renderLesson(lesson) {
+  state.activeLessonId = lesson.id || null;
   els.lessonCard.classList.remove("collapsed");
   els.lessonTitle.textContent = lesson.title || "Daily lesson";
   els.lessonGoal.textContent = state.profile.level;
   els.lessonWarmup.textContent = lesson.goal || lesson.warmup || "Practice this short lesson.";
+  if (els.completeLessonButton) {
+    els.completeLessonButton.disabled = Boolean(lesson.completed);
+    els.completeLessonButton.textContent = lesson.completed ? "Lesson Complete" : "Complete Lesson";
+  }
   const dialogue = Array.isArray(lesson.dialogue) ? lesson.dialogue : [];
   els.lessonDialogue.replaceChildren(...dialogue.map(line => {
     const item = document.createElement("p");
@@ -597,7 +611,38 @@ function renderLesson(lesson) {
   }));
   const drill = lesson.drill || {};
   els.lessonDrill.textContent = drill.prompt ? `Drill: ${drill.prompt}` : "";
+  renderPastLessons();
 }
+
+function renderPastLessons() {
+  if (!els.pastLessons || !els.lessonCount) return;
+  els.lessonCount.textContent = String(state.lessons.length);
+  if (!state.lessons.length) {
+    els.pastLessons.innerHTML = `<div class="empty-state">Generated lessons will appear here.</div>`;
+    return;
+  }
+  els.pastLessons.replaceChildren(...state.lessons.slice(0, 6).map(lesson => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = lesson.completed ? "completed" : "";
+    button.innerHTML = `<strong>${lesson.title || "Daily lesson"}</strong><small>${lesson.completed ? "Complete" : "In progress"}</small>`;
+    button.addEventListener("click", () => renderLesson(lesson));
+    return button;
+  }));
+}
+
+els.completeLessonButton?.addEventListener("click", async () => {
+  if (!state.activeLessonId) return;
+  els.completeLessonButton.textContent = "Saving...";
+  const result = await api("api/lesson/complete", {
+    method: "POST",
+    body: JSON.stringify({ id: state.activeLessonId })
+  });
+  state.profile = result.profile;
+  state.lessons = state.lessons.map(lesson => lesson.id === result.lesson.id ? result.lesson : lesson);
+  renderHome();
+  renderLesson(result.lesson);
+});
 
 els.toggleHistoryButton.addEventListener("click", () => {
   const collapsed = els.chatHistory.classList.toggle("collapsed");
@@ -724,10 +769,21 @@ function renderReviewQueue() {
   if (!word) {
     els.reviewWord.textContent = "No saved words";
     els.reviewMeaning.textContent = "Save vocabulary from chat to build a queue.";
+    els.reviewButtons.forEach(button => {
+      button.disabled = true;
+    });
     return;
   }
+  els.reviewButtons.forEach(button => {
+    button.disabled = false;
+  });
   els.reviewWord.textContent = word.german;
   els.reviewMeaning.textContent = `${word.english || "No meaning yet"} · strength ${word.strength}/5`;
+}
+
+function currentReviewWord() {
+  const queue = [...state.words].sort((a, b) => (a.strength || 0) - (b.strength || 0));
+  return queue[reviewIndex % Math.max(1, queue.length)];
 }
 
 async function checkGenericDrill(kind, answer, expected, feedbackEl, onCorrect) {
@@ -761,6 +817,23 @@ els.checkTranslateButton.addEventListener("click", () => {
 els.nextReviewButton.addEventListener("click", () => {
   reviewIndex += 1;
   renderReviewQueue();
+});
+
+els.reviewButtons.forEach(button => {
+  button.addEventListener("click", async () => {
+    const word = currentReviewWord();
+    if (!word) return;
+    button.disabled = true;
+    const result = await api("api/words/review", {
+      method: "POST",
+      body: JSON.stringify({ wordId: word.id, quality: button.dataset.quality })
+    });
+    state.profile = result.profile;
+    state.words = state.words.map(item => item.id === result.word.id ? result.word : item);
+    reviewIndex += 1;
+    renderHome();
+    renderDrills();
+  });
 });
 
 els.toolForm.addEventListener("submit", async event => {
@@ -873,7 +946,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614m`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614n`));
 }
 
 loadApp().catch(error => {

@@ -202,7 +202,23 @@ function initializeDatabase() {
       content TEXT NOT NULL,
       position INTEGER NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS lessons (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      goal TEXT NOT NULL,
+      warmup TEXT NOT NULL,
+      dialogue TEXT NOT NULL,
+      vocabulary TEXT NOT NULL,
+      drill TEXT NOT NULL,
+      completed INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL,
+      completed_at TEXT
+    );
   `);
+
+  ensureColumn("words", "next_review_at", "TEXT");
+  ensureColumn("words", "review_count", "INTEGER NOT NULL DEFAULT 0");
 
   const existing = db.prepare("SELECT COUNT(*) AS count FROM profile").get();
   if (existing.count > 0) return;
@@ -218,10 +234,17 @@ function initializeDatabase() {
   writeStateSync(seed);
 }
 
+function ensureColumn(table, column, definition) {
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all();
+  if (columns.some(item => item.name === column)) return;
+  db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+}
+
 async function readState() {
   const profile = db.prepare("SELECT * FROM profile WHERE id = 1").get();
   const quest = db.prepare("SELECT * FROM current_quest WHERE id = 1").get();
   const words = db.prepare("SELECT * FROM words ORDER BY rowid").all();
+  const lessons = db.prepare("SELECT * FROM lessons ORDER BY datetime(created_at) DESC").all();
   const scenarios = db.prepare("SELECT * FROM scenarios ORDER BY rowid").all();
   const sessionRows = db.prepare("SELECT * FROM sessions ORDER BY datetime(created_at) DESC").all();
   const messageRows = db.prepare("SELECT * FROM messages ORDER BY position, id").all();
@@ -245,7 +268,21 @@ async function readState() {
       german: word.german,
       english: word.english,
       article: word.article,
-      strength: word.strength
+      strength: word.strength,
+      nextReviewAt: word.next_review_at,
+      reviewCount: word.review_count
+    })),
+    lessons: lessons.map(lesson => ({
+      id: lesson.id,
+      title: lesson.title,
+      goal: lesson.goal,
+      warmup: lesson.warmup,
+      dialogue: JSON.parse(lesson.dialogue || "[]"),
+      vocabulary: JSON.parse(lesson.vocabulary || "[]"),
+      drill: JSON.parse(lesson.drill || "{}"),
+      completed: Boolean(lesson.completed),
+      createdAt: lesson.created_at,
+      completedAt: lesson.completed_at
     })),
     scenarios: scenarios.map(scenario => ({
       id: scenario.id,
@@ -303,13 +340,14 @@ function writeStateSync(state) {
     profile: { ...defaultState.profile, ...(state.profile || {}) },
     currentQuest: { ...defaultState.currentQuest, ...(state.currentQuest || {}) },
     words: Array.isArray(state.words) ? state.words : defaultState.words,
+    lessons: Array.isArray(state.lessons) ? state.lessons : [],
     scenarios: Array.isArray(state.scenarios) ? state.scenarios : defaultState.scenarios,
     sessions: Array.isArray(state.sessions) ? state.sessions : defaultState.sessions
   };
 
   db.exec("BEGIN");
   try {
-    db.exec("DELETE FROM messages; DELETE FROM sessions; DELETE FROM scenarios; DELETE FROM words; DELETE FROM current_quest; DELETE FROM profile;");
+    db.exec("DELETE FROM lessons; DELETE FROM messages; DELETE FROM sessions; DELETE FROM scenarios; DELETE FROM words; DELETE FROM current_quest; DELETE FROM profile;");
     db.prepare(`
       INSERT INTO profile (id, name, level, streak, xp, daily_goal, completed_today)
       VALUES (1, ?, ?, ?, ?, ?, ?)
@@ -330,9 +368,25 @@ function writeStateSync(state) {
       normalized.currentQuest.progress
     );
 
-    const insertWord = db.prepare("INSERT INTO words (id, german, english, article, strength) VALUES (?, ?, ?, ?, ?)");
+    const insertWord = db.prepare("INSERT INTO words (id, german, english, article, strength, next_review_at, review_count) VALUES (?, ?, ?, ?, ?, ?, ?)");
     normalized.words.forEach(word => {
-      insertWord.run(word.id || crypto.randomUUID(), word.german || "", word.english || "", word.article || "", word.strength || 0);
+      insertWord.run(word.id || crypto.randomUUID(), word.german || "", word.english || "", word.article || "", word.strength || 0, word.nextReviewAt || null, word.reviewCount || 0);
+    });
+
+    const insertLesson = db.prepare("INSERT INTO lessons (id, title, goal, warmup, dialogue, vocabulary, drill, completed, created_at, completed_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    normalized.lessons.forEach(lesson => {
+      insertLesson.run(
+        lesson.id || crypto.randomUUID(),
+        lesson.title || "Lesson",
+        lesson.goal || "",
+        lesson.warmup || "",
+        JSON.stringify(lesson.dialogue || []),
+        JSON.stringify(lesson.vocabulary || []),
+        JSON.stringify(lesson.drill || {}),
+        lesson.completed ? 1 : 0,
+        lesson.createdAt || new Date().toISOString(),
+        lesson.completedAt || null
+      );
     });
 
     const insertScenario = db.prepare("INSERT INTO scenarios (id, title, place, goal, prompt) VALUES (?, ?, ?, ?, ?)");
@@ -548,7 +602,9 @@ async function handleApi(req, res, url) {
         sessions: state.sessions.length,
         messages: totalMessages,
         words: state.words.length,
-        scenarios: state.scenarios.length
+        scenarios: state.scenarios.length,
+        lessons: state.lessons.length,
+        completedLessons: state.lessons.filter(lesson => lesson.completed).length
       },
       weakestWords,
       likelyMistakes
@@ -601,7 +657,39 @@ async function handleApi(req, res, url) {
         drill: { prompt: "Say one sentence from the lesson.", answer: "" }
       };
     }
-    sendJson(res, 200, { lesson, raw });
+    const savedLesson = {
+      id: crypto.randomUUID(),
+      title: String(lesson.title || topic),
+      goal: String(lesson.goal || "Practice one useful conversation."),
+      warmup: String(lesson.warmup || "Read the dialogue aloud once."),
+      dialogue: Array.isArray(lesson.dialogue) ? lesson.dialogue : [],
+      vocabulary: Array.isArray(lesson.vocabulary) ? lesson.vocabulary : [],
+      drill: lesson.drill || { prompt: "", answer: "" },
+      completed: false,
+      createdAt: new Date().toISOString(),
+      completedAt: null
+    };
+    state.lessons.unshift(savedLesson);
+    await writeState(state);
+    sendJson(res, 200, { lesson: savedLesson, raw });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/lesson/complete") {
+    const body = await readBody(req);
+    const lesson = state.lessons.find(item => item.id === body.id);
+    if (!lesson) {
+      sendJson(res, 404, { error: "Lesson not found." });
+      return;
+    }
+    if (!lesson.completed) {
+      lesson.completed = true;
+      lesson.completedAt = new Date().toISOString();
+      state.profile.xp = (state.profile.xp || 0) + 25;
+      state.profile.completedToday = (state.profile.completedToday || 0) + 1;
+    }
+    await writeState(state);
+    sendJson(res, 200, { lesson, profile: state.profile });
     return;
   }
 
@@ -836,11 +924,36 @@ async function handleApi(req, res, url) {
       german,
       english: String(body.english || "").trim(),
       article: String(body.article || "").trim(),
-      strength: 0
+      strength: 0,
+      nextReviewAt: new Date().toISOString(),
+      reviewCount: 0
     };
     state.words.unshift(word);
     await writeState(state);
     sendJson(res, 201, word);
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/words/review") {
+    const body = await readBody(req);
+    const word = state.words.find(item => item.id === String(body.wordId || ""));
+    if (!word) {
+      sendJson(res, 404, { error: "Word not found." });
+      return;
+    }
+    const quality = String(body.quality || "good");
+    const days = quality === "again" ? 0 : quality === "hard" ? 1 : quality === "easy" ? 7 : 3;
+    const delta = quality === "again" ? -1 : quality === "hard" ? 0 : quality === "easy" ? 2 : 1;
+    word.strength = Math.max(0, Math.min(5, (word.strength || 0) + delta));
+    word.reviewCount = (word.reviewCount || 0) + 1;
+    const next = new Date();
+    next.setDate(next.getDate() + days);
+    word.nextReviewAt = next.toISOString();
+    const xpDelta = quality === "again" ? 2 : quality === "hard" ? 5 : quality === "easy" ? 12 : 8;
+    state.profile.xp = (state.profile.xp || 0) + xpDelta;
+    state.profile.completedToday = (state.profile.completedToday || 0) + 1;
+    await writeState(state);
+    sendJson(res, 200, { word, profile: state.profile, xpDelta });
     return;
   }
 
