@@ -833,6 +833,30 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/lookup") {
+    const body = await readBody(req);
+    const text = String(body.text || "").trim().slice(0, 500);
+    const context = String(body.context || "").trim().slice(0, 900);
+    const kind = String(body.kind || "word");
+    if (!text) {
+      sendJson(res, 400, { error: "Text is required." });
+      return;
+    }
+    const prompt = [
+      `Teach this German ${kind} to a brand-new learner: "${text}".`,
+      context ? `Context: ${context}` : "",
+      "Explain in this exact shape:",
+      "1. Literal meaning",
+      "2. Natural meaning in this context",
+      "3. Any implied meaning, tone, or hidden grammar",
+      "4. One very simple example",
+      "Keep it short and avoid assuming I know grammar terms."
+    ].filter(Boolean).join("\n");
+    const answer = await askOllama([{ role: "user", content: prompt }], state.profile.level || "A1", "tool");
+    sendJson(res, 200, { text, kind, answer });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/scenario") {
     const body = await readBody(req);
     const scenario = state.scenarios.find(item => item.id === body.id) || state.scenarios[0];

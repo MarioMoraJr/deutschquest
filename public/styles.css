@@ -229,6 +229,36 @@ p {
   display: none;
 }
 
+.lookup-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 12px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 14px 38px rgba(80, 46, 26, 0.1);
+}
+
+.lookup-panel.collapsed {
+  display: none;
+}
+
+.lookup-panel .section-head button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 950;
+}
+
+#lookupOutput {
+  white-space: pre-wrap;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
 .history-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 38px;
@@ -451,6 +481,44 @@ p {
 .conjugation-table small,
 .rule-list p {
   color: var(--muted);
+}
+
+.teacher-steps,
+.meaning-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.teacher-steps {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.teacher-steps button,
+.meaning-grid button {
+  min-height: 52px;
+  padding: 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.82);
+  color: var(--ink);
+  font-weight: 900;
+  text-align: left;
+}
+
+.meaning-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.meaning-grid button {
+  display: grid;
+  gap: 3px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.86), rgba(220, 247, 241, 0.72));
+}
+
+.meaning-grid small {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.25;
 }
 
 .rule-list {
@@ -817,6 +885,41 @@ p {
   border-radius: 16px;
   white-space: pre-wrap;
   line-height: 1.42;
+}
+
+.sentence-line {
+  display: inline;
+}
+
+.word-token {
+  display: inline;
+  min-height: 0;
+  padding: 0 1px;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-weight: inherit;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 107, 53, 0.34);
+  text-underline-offset: 3px;
+}
+
+.word-token:active {
+  background: rgba(255, 200, 87, 0.3);
+}
+
+.sentence-explain {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  margin-left: 4px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--violet);
+  font-size: 0.78rem;
+  font-weight: 950;
+  vertical-align: middle;
 }
 
 .bubble.assistant {

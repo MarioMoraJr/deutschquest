@@ -79,6 +79,10 @@ const els = {
   sendChatButton: document.querySelector("#sendChatButton"),
   stopChatButton: document.querySelector("#stopChatButton"),
   retryChatButton: document.querySelector("#retryChatButton"),
+  lookupPanel: document.querySelector("#lookupPanel"),
+  lookupTitle: document.querySelector("#lookupTitle"),
+  lookupOutput: document.querySelector("#lookupOutput"),
+  closeLookupButton: document.querySelector("#closeLookupButton"),
   saveWordForm: document.querySelector("#saveWordForm"),
   saveGerman: document.querySelector("#saveGerman"),
   saveEnglish: document.querySelector("#saveEnglish"),
@@ -256,8 +260,46 @@ function renderChat() {
 function createBubble(role, content = "") {
   const bubble = document.createElement("div");
   bubble.className = `bubble ${role === "user" ? "user" : "assistant"}`;
-  bubble.textContent = content;
+  renderTappableText(bubble, content);
   return bubble;
+}
+
+function renderTappableText(container, content = "") {
+  container.replaceChildren();
+  const sentences = String(content).match(/[^.!?\n]+[.!?]?|\n+/g) || [String(content)];
+  sentences.forEach(sentence => {
+    if (!sentence.trim()) {
+      container.append(document.createTextNode(sentence));
+      return;
+    }
+    const line = document.createElement("span");
+    line.className = "sentence-line";
+    tokenizeText(sentence).forEach(part => {
+      if (/^[A-Za-zÀ-ÖØ-öø-ÿÄÖÜäöüß]+(?:[-'][A-Za-zÀ-ÖØ-öø-ÿÄÖÜäöüß]+)?$/.test(part)) {
+        const word = document.createElement("button");
+        word.type = "button";
+        word.className = "word-token";
+        word.dataset.lookupText = part;
+        word.dataset.lookupKind = "word";
+        word.textContent = part;
+        line.append(word);
+      } else {
+        line.append(document.createTextNode(part));
+      }
+    });
+    const explain = document.createElement("button");
+    explain.type = "button";
+    explain.className = "sentence-explain";
+    explain.dataset.lookupText = sentence.trim();
+    explain.dataset.lookupKind = "sentence";
+    explain.textContent = "?";
+    line.append(explain);
+    container.append(line);
+  });
+}
+
+function tokenizeText(text) {
+  return String(text).match(/[A-Za-zÀ-ÖØ-öø-ÿÄÖÜäöüß]+(?:[-'][A-Za-zÀ-ÖØ-öø-ÿÄÖÜäöüß]+)?|\s+|./g) || [];
 }
 
 function currentDrillWord() {
@@ -655,7 +697,7 @@ function renderLesson(lesson) {
   const dialogue = Array.isArray(lesson.dialogue) ? lesson.dialogue : [];
   els.lessonDialogue.replaceChildren(...dialogue.map(line => {
     const item = document.createElement("p");
-    item.textContent = line;
+    renderTappableText(item, line);
     return item;
   }));
   const vocab = Array.isArray(lesson.vocabulary) ? lesson.vocabulary : [];
@@ -761,6 +803,48 @@ els.toggleHistoryButton.addEventListener("click", () => {
   const collapsed = els.chatHistory.classList.toggle("collapsed");
   els.toggleHistoryButton.setAttribute("aria-expanded", String(!collapsed));
   renderHistory();
+});
+
+async function explainText(text, kind = "word", context = "") {
+  const cleanText = String(text || "").trim();
+  if (!cleanText) return;
+  els.lookupPanel.classList.remove("collapsed");
+  els.lookupTitle.textContent = kind === "sentence" ? "Sentence meaning" : cleanText;
+  els.lookupOutput.textContent = "Asking the teacher...";
+  try {
+    const result = await api("api/lookup", {
+      method: "POST",
+      body: JSON.stringify({ text: cleanText, kind, context })
+    });
+    els.lookupOutput.textContent = result.answer;
+  } catch (error) {
+    els.lookupOutput.textContent = error.message;
+  }
+}
+
+els.closeLookupButton.addEventListener("click", () => {
+  els.lookupPanel.classList.add("collapsed");
+});
+
+document.addEventListener("click", event => {
+  const target = event.target.closest("[data-lookup-text]");
+  if (!target) return;
+  const bubble = target.closest(".bubble, .lesson-dialogue p, .guide-card");
+  explainText(target.dataset.lookupText, target.dataset.lookupKind || "word", bubble?.textContent || "");
+});
+
+els.chatPanel.addEventListener("dblclick", event => {
+  const bubble = event.target.closest(".bubble");
+  if (!bubble) return;
+  explainText(bubble.textContent, "sentence", bubble.textContent);
+});
+
+document.querySelectorAll("[data-teacher-prompt]").forEach(button => {
+  button.addEventListener("click", async () => {
+    switchView("chatView");
+    els.chatInput.value = button.dataset.teacherPrompt;
+    els.chatForm.requestSubmit();
+  });
 });
 
 document.querySelectorAll("[data-reply]").forEach(button => {
@@ -1062,7 +1146,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614o`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614q`));
 }
 
 loadApp().catch(error => {

@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614p">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614p">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614q">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614q">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -139,6 +139,13 @@
             <button data-reply="Gib mir einen kleinen Hinweis.">Hint</button>
           </div>
           <div class="chat-panel" id="chatPanel"></div>
+          <article class="lookup-panel collapsed" id="lookupPanel">
+            <div class="section-head compact">
+              <h2 id="lookupTitle">Explain</h2>
+              <button id="closeLookupButton" aria-label="Close explanation">X</button>
+            </div>
+            <div id="lookupOutput">Tap a word or sentence to explain it.</div>
+          </article>
           <article class="chat-summary collapsed" id="chatSummary"></article>
           <div class="vocab-suggestions" id="vocabSuggestions"></div>
           <form class="save-word-form collapsed" id="saveWordForm">
@@ -244,6 +251,27 @@
             <h2>Guides</h2>
             <span>Grammar</span>
           </div>
+          <article class="guide-card">
+            <p class="eyebrow">Teacher Mode</p>
+            <h2>Start like a new learner</h2>
+            <div class="teacher-steps">
+              <button data-teacher-prompt="Teach me German from zero. Start with greetings, yes/no, please/thanks, and one tiny sentence pattern.">First lesson</button>
+              <button data-teacher-prompt="Teach me the German words I need before grammar: I, you, want, have, is, not, yes, no, please, thank you.">Core words</button>
+              <button data-teacher-prompt="Explain German articles der, die, das like I am brand new and give me a tiny memory trick.">Articles</button>
+            </div>
+          </article>
+          <article class="guide-card">
+            <p class="eyebrow">Implied meaning</p>
+            <h2>Small words that change tone</h2>
+            <div class="meaning-grid">
+              <button data-lookup-text="schon" data-lookup-kind="word"><strong>schon</strong><small>already, yet, really, softener</small></button>
+              <button data-lookup-text="doch" data-lookup-kind="word"><strong>doch</strong><small>but yes, actually, pushback</small></button>
+              <button data-lookup-text="mal" data-lookup-kind="word"><strong>mal</strong><small>once, sometime, makes requests softer</small></button>
+              <button data-lookup-text="ja" data-lookup-kind="word"><strong>ja</strong><small>yes, as you know, obvious tone</small></button>
+              <button data-lookup-text="denn" data-lookup-kind="word"><strong>denn</strong><small>then, because, softer questions</small></button>
+              <button data-lookup-text="aber" data-lookup-kind="word"><strong>aber</strong><small>but, surprise, emphasis</small></button>
+            </div>
+          </article>
           <article class="guide-card">
             <p class="eyebrow">Conjugation</p>
             <h2>Present tense endings</h2>
@@ -367,6 +395,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614p" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614q" defer></script>
   </body>
 </html>
