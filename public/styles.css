@@ -824,6 +824,38 @@ p {
   background: #fffaf0;
 }
 
+.bubble.assistant.error {
+  border: 1px solid rgba(190, 18, 60, 0.18);
+  background: rgba(255, 241, 242, 0.92);
+  color: #9f1239;
+}
+
+.bubble.typing {
+  display: inline-flex;
+  width: fit-content;
+  min-width: 74px;
+  align-items: center;
+  gap: 6px;
+}
+
+.bubble.typing span {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--orange);
+  animation: typingDot 0.95s ease-in-out infinite;
+}
+
+.bubble.typing span:nth-child(2) {
+  background: var(--rose);
+  animation-delay: 0.14s;
+}
+
+.bubble.typing span:nth-child(3) {
+  background: var(--teal);
+  animation-delay: 0.28s;
+}
+
 .bubble.user {
   justify-self: end;
   border-bottom-right-radius: 5px;
@@ -832,15 +864,44 @@ p {
 }
 
 .composer {
+  position: relative;
+  isolation: isolate;
   display: grid;
   grid-template-columns: minmax(0, 1fr) 48px;
   gap: 6px;
   margin-top: 6px;
   padding: 6px;
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: 999px;
   background: rgba(255, 250, 240, 0.9);
   box-shadow: 0 12px 34px rgba(80, 46, 26, 0.12);
+}
+
+.composer::before {
+  content: "";
+  position: absolute;
+  inset: -2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--orange), var(--gold), var(--teal), var(--cyan), var(--rose), var(--orange));
+  background-size: 260% 100%;
+  opacity: 0.68;
+  animation: composerFlow 4.8s linear infinite;
+}
+
+.composer::after {
+  content: "";
+  position: absolute;
+  inset: 2px;
+  z-index: -1;
+  border-radius: inherit;
+  background: rgba(255, 250, 240, 0.94);
+}
+
+.composer:focus-within::before,
+.composer.is-streaming::before {
+  opacity: 1;
+  animation-duration: 1.35s;
 }
 
 input,
@@ -875,6 +936,50 @@ select {
   background: var(--ink);
   color: #fff;
   font-weight: 950;
+}
+
+.composer button:disabled,
+.stream-controls button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.stream-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.stream-controls button {
+  min-height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.82);
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 900;
+  box-shadow: 0 8px 20px rgba(80, 46, 26, 0.08);
+}
+
+.stream-controls button:not(:disabled):first-child {
+  background: #9f1239;
+  color: #fff;
+}
+
+.stream-controls button:not(:disabled):last-child {
+  background: var(--teal);
+  color: #fff;
+}
+
+@keyframes composerFlow {
+  from { background-position: 0% 50%; }
+  to { background-position: 260% 50%; }
+}
+
+@keyframes typingDot {
+  0%, 72%, 100% { transform: translateY(0); opacity: 0.42; }
+  34% { transform: translateY(-4px); opacity: 1; }
 }
 
 #chatView {

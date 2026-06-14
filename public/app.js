@@ -76,6 +76,9 @@ const els = {
   chatPanel: document.querySelector("#chatPanel"),
   chatForm: document.querySelector("#chatForm"),
   chatInput: document.querySelector("#chatInput"),
+  sendChatButton: document.querySelector("#sendChatButton"),
+  stopChatButton: document.querySelector("#stopChatButton"),
+  retryChatButton: document.querySelector("#retryChatButton"),
   saveWordForm: document.querySelector("#saveWordForm"),
   saveGerman: document.querySelector("#saveGerman"),
   saveEnglish: document.querySelector("#saveEnglish"),
@@ -140,6 +143,8 @@ let conjugationIndex = 0;
 let repairIndex = 0;
 let translateIndex = 0;
 let reviewIndex = 0;
+let chatAbortController = null;
+let lastChatRequest = null;
 
 const repairDrills = [
   { broken: "Ich gehen nach Hause.", expected: "Ich gehe nach Hause." },
@@ -446,42 +451,58 @@ function updateSessionMessages(sessionId, messages, mode = "tutor") {
 }
 
 async function sendChat(message, mode = "tutor") {
-  const pending = createBubble("assistant", "");
+  if (chatAbortController) chatAbortController.abort();
+  chatAbortController = new AbortController();
+  lastChatRequest = { message, mode, sessionId: state.sessionId };
+  setStreaming(true);
+  const pending = createTypingBubble();
   els.chatPanel.append(pending);
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
 
-  const response = await fetch(apiPath("api/chat/stream"), {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...authHeaders()
-    },
-    body: JSON.stringify({ sessionId: state.sessionId, message, mode })
-  });
+  try {
+    const response = await fetch(apiPath("api/chat/stream"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...authHeaders()
+      },
+      body: JSON.stringify({ sessionId: state.sessionId, message, mode }),
+      signal: chatAbortController.signal
+    });
 
-  if (response.status === 401) {
-    showLogin("App password required.");
-    return;
-  }
-  if (!response.ok || !response.body) {
-    pending.textContent = "The tutor could not respond.";
-    return;
-  }
-
-  const decoder = new TextDecoder();
-  const reader = response.body.getReader();
-  let buffer = "";
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const events = buffer.split("\n\n");
-    buffer = events.pop() || "";
-    for (const rawEvent of events) {
-      handleStreamEvent(rawEvent, pending, mode);
+    if (response.status === 401) {
+      showLogin("App password required.");
+      return;
     }
+    if (!response.ok || !response.body) {
+      pending.className = "bubble assistant error";
+      pending.textContent = "The tutor could not respond. Check Ollama, then retry.";
+      setRetryEnabled(true);
+      return;
+    }
+
+    const decoder = new TextDecoder();
+    const reader = response.body.getReader();
+    let buffer = "";
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split("\n\n");
+      buffer = events.pop() || "";
+      for (const rawEvent of events) {
+        handleStreamEvent(rawEvent, pending, mode);
+      }
+    }
+    if (buffer.trim()) handleStreamEvent(buffer, pending, mode);
+  } catch (error) {
+    pending.className = "bubble assistant error";
+    pending.textContent = error.name === "AbortError" ? "Stopped. You can retry that prompt." : "The tutor connection dropped. Retry when Ollama is ready.";
+    setRetryEnabled(true);
+  } finally {
+    setStreaming(false);
+    chatAbortController = null;
   }
-  if (buffer.trim()) handleStreamEvent(buffer, pending, mode);
 }
 
 function handleStreamEvent(rawEvent, pending, mode) {
@@ -490,6 +511,7 @@ function handleStreamEvent(rawEvent, pending, mode) {
   const dataLine = lines.find(line => line.startsWith("data:"));
   const data = dataLine ? JSON.parse(dataLine.slice(5)) : {};
   if (event === "chunk") {
+    pending.className = "bubble assistant";
     pending.textContent += data.chunk || "";
     els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
   }
@@ -498,8 +520,29 @@ function handleStreamEvent(rawEvent, pending, mode) {
     renderChat();
   }
   if (event === "error") {
-    pending.textContent = data.error || "Streaming failed.";
+    pending.className = "bubble assistant error";
+    pending.textContent = data.error || "Streaming failed. Retry when Ollama is ready.";
+    setRetryEnabled(true);
   }
+}
+
+function createTypingBubble() {
+  const bubble = createBubble("assistant", "");
+  bubble.classList.add("typing");
+  bubble.innerHTML = `<span></span><span></span><span></span>`;
+  return bubble;
+}
+
+function setStreaming(isStreaming) {
+  els.chatForm.classList.toggle("is-streaming", isStreaming);
+  els.chatInput.disabled = isStreaming;
+  els.sendChatButton.disabled = isStreaming;
+  els.stopChatButton.disabled = !isStreaming;
+  if (isStreaming) setRetryEnabled(false);
+}
+
+function setRetryEnabled(enabled) {
+  els.retryChatButton.disabled = !enabled || !lastChatRequest;
 }
 
 document.querySelectorAll(".tab").forEach(tab => {
@@ -529,6 +572,7 @@ els.loginForm.addEventListener("submit", async event => {
 
 els.chatForm.addEventListener("submit", async event => {
   event.preventDefault();
+  if (chatAbortController) return;
   const message = els.chatInput.value.trim();
   if (!message) return;
   els.chatInput.value = "";
@@ -536,6 +580,18 @@ els.chatForm.addEventListener("submit", async event => {
   if (session) session.messages.push({ role: "user", content: message });
   renderChat();
   await sendChat(message, "tutor");
+});
+
+els.stopChatButton.addEventListener("click", () => {
+  if (chatAbortController) chatAbortController.abort();
+});
+
+els.retryChatButton.addEventListener("click", async () => {
+  if (!lastChatRequest || chatAbortController) return;
+  state.sessionId = lastChatRequest.sessionId || state.sessionId;
+  setRetryEnabled(false);
+  renderChat();
+  await sendChat(lastChatRequest.message, lastChatRequest.mode);
 });
 
 els.beginRoleplay.addEventListener("click", async () => {

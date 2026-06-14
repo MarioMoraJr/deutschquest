@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614o">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614o">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614p">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614p">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -154,8 +154,12 @@
           </form>
           <form class="composer" id="chatForm">
             <input id="chatInput" autocomplete="off" placeholder="Reply in German...">
-            <button aria-label="Send message">Go</button>
+            <button id="sendChatButton" aria-label="Send message">Go</button>
           </form>
+          <div class="stream-controls">
+            <button id="stopChatButton" disabled>Stop</button>
+            <button id="retryChatButton" disabled>Retry</button>
+          </div>
         </section>
 
         <section class="view" id="roleplayView">
@@ -363,6 +367,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614o" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614p" defer></script>
   </body>
 </html>
