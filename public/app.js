@@ -16,6 +16,7 @@ const state = {
   sessions: [],
   sessionId: null,
   activeLessonId: null,
+  activeLesson: null,
   drillIndex: 0,
   roleplayPrompt: "",
   orderIndex: 0,
@@ -55,6 +56,7 @@ const els = {
   goalProgress: document.querySelector("#goalProgress"),
   scenarioList: document.querySelector("#scenarioList"),
   continueChatButton: document.querySelector("#continueChatButton"),
+  lessonTopicInput: document.querySelector("#lessonTopicInput"),
   generateLessonButton: document.querySelector("#generateLessonButton"),
   logoutButton: document.querySelector("#logoutButton"),
   lessonCard: document.querySelector("#lessonCard"),
@@ -65,6 +67,10 @@ const els = {
   lessonVocab: document.querySelector("#lessonVocab"),
   lessonDrill: document.querySelector("#lessonDrill"),
   completeLessonButton: document.querySelector("#completeLessonButton"),
+  practiceLessonButton: document.querySelector("#practiceLessonButton"),
+  lessonDrillInput: document.querySelector("#lessonDrillInput"),
+  checkLessonDrillButton: document.querySelector("#checkLessonDrillButton"),
+  lessonDrillFeedback: document.querySelector("#lessonDrillFeedback"),
   lessonCount: document.querySelector("#lessonCount"),
   pastLessons: document.querySelector("#pastLessons"),
   chatPanel: document.querySelector("#chatPanel"),
@@ -113,6 +119,7 @@ const els = {
   progressSessions: document.querySelector("#progressSessions"),
   progressWords: document.querySelector("#progressWords"),
   progressReps: document.querySelector("#progressReps"),
+  progressLessons: document.querySelector("#progressLessons"),
   weakestWords: document.querySelector("#weakestWords"),
   mistakeList: document.querySelector("#mistakeList"),
   conjPrompt: document.querySelector("#conjPrompt"),
@@ -230,6 +237,7 @@ function renderChat() {
   const session = state.sessions.find(item => item.id === state.sessionId) || state.sessions[0];
   const messages = session?.messages || [];
   document.querySelector("#chatView .section-head h2").textContent = session?.title || "Tutor Chat";
+  renderHistory();
   if (!messages.length) {
     els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was möchtest du heute auf Deutsch üben?</div>`;
     return;
@@ -238,7 +246,6 @@ function renderChat() {
     ...messages.map(message => createBubble(message.role, message.content))
   );
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
-  renderHistory();
 }
 
 function createBubble(role, content = "") {
@@ -560,12 +567,14 @@ els.logoutButton.addEventListener("click", () => {
 
 els.generateLessonButton.addEventListener("click", async () => {
   els.generateLessonButton.textContent = "Generating...";
+  const topic = els.lessonTopicInput.value.trim() || state.currentQuest.title || "daily German practice";
   try {
     const result = await api("api/lesson/generate", {
       method: "POST",
-      body: JSON.stringify({ topic: state.currentQuest.title })
+      body: JSON.stringify({ topic })
     });
     state.lessons = [result.lesson, ...state.lessons.filter(item => item.id !== result.lesson.id)];
+    els.lessonTopicInput.value = "";
     renderLesson(result.lesson);
   } catch (error) {
     els.lessonCard.classList.remove("collapsed");
@@ -578,6 +587,7 @@ els.generateLessonButton.addEventListener("click", async () => {
 
 function renderLesson(lesson) {
   state.activeLessonId = lesson.id || null;
+  state.activeLesson = lesson;
   els.lessonCard.classList.remove("collapsed");
   els.lessonTitle.textContent = lesson.title || "Daily lesson";
   els.lessonGoal.textContent = state.profile.level;
@@ -611,6 +621,8 @@ function renderLesson(lesson) {
   }));
   const drill = lesson.drill || {};
   els.lessonDrill.textContent = drill.prompt ? `Drill: ${drill.prompt}` : "";
+  if (els.lessonDrillInput) els.lessonDrillInput.value = "";
+  if (els.lessonDrillFeedback) els.lessonDrillFeedback.textContent = "Use the drill prompt above.";
   renderPastLessons();
 }
 
@@ -642,6 +654,51 @@ els.completeLessonButton?.addEventListener("click", async () => {
   state.lessons = state.lessons.map(lesson => lesson.id === result.lesson.id ? result.lesson : lesson);
   renderHome();
   renderLesson(result.lesson);
+});
+
+els.practiceLessonButton?.addEventListener("click", async () => {
+  const lesson = state.activeLesson;
+  if (!lesson) return;
+  const result = await api("api/chat/new", {
+    method: "POST",
+    body: JSON.stringify({ mode: "tutor", title: `Lesson: ${lesson.title || "Practice"}` })
+  });
+  state.sessions.unshift(result.session);
+  state.sessionId = result.session.id;
+  const vocab = (lesson.vocabulary || [])
+    .map(word => `${word.article ? `${word.article} ` : ""}${word.german || ""} = ${word.english || ""}`)
+    .filter(Boolean)
+    .join("; ");
+  const prompt = [
+    `Practice this German lesson with me: ${lesson.title || "Daily lesson"}.`,
+    `Goal: ${lesson.goal || lesson.warmup || "simple conversation"}.`,
+    vocab ? `Use these words: ${vocab}.` : "",
+    "Ask one short question at a time, correct my German, and keep it at my level."
+  ].filter(Boolean).join(" ");
+  const session = state.sessions.find(item => item.id === state.sessionId);
+  if (session) session.messages.push({ role: "user", content: prompt });
+  renderChat();
+  switchView("chatView");
+  await sendChat(prompt, "tutor");
+});
+
+els.checkLessonDrillButton?.addEventListener("click", async () => {
+  const lesson = state.activeLesson;
+  const answer = els.lessonDrillInput.value.trim();
+  if (!lesson || !answer) return;
+  const expected = lesson.drill?.answer || lesson.drill?.expected || "";
+  if (!expected) {
+    els.lessonDrillFeedback.textContent = "No answer key for this drill. Practice it in chat instead.";
+    return;
+  }
+  const result = await api("api/drills/check", {
+    method: "POST",
+    body: JSON.stringify({ kind: "lesson-drill", answer, expected })
+  });
+  state.profile = result.profile;
+  state.currentQuest = result.currentQuest;
+  els.lessonDrillFeedback.textContent = result.correct ? `Richtig! +${result.xpDelta} XP` : `Try: ${result.expected}`;
+  renderHome();
 });
 
 els.toggleHistoryButton.addEventListener("click", () => {
@@ -910,6 +967,9 @@ async function loadProgress() {
   els.progressSessions.textContent = progress.totals.sessions;
   els.progressWords.textContent = progress.totals.words;
   els.progressReps.textContent = progress.profile.completedToday || 0;
+  if (els.progressLessons) {
+    els.progressLessons.textContent = `${progress.totals.completedLessons || 0}/${progress.totals.lessons || 0}`;
+  }
   els.weakestWords.replaceChildren(...progress.weakestWords.map(word => {
     const row = document.createElement("article");
     row.className = "word-row";
@@ -946,7 +1006,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614n`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614o`));
 }
 
 loadApp().catch(error => {

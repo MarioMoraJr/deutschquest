@@ -527,6 +527,19 @@ p {
   text-align: center;
 }
 
+.secondary {
+  display: grid;
+  place-items: center;
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid rgba(36, 23, 17, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 250, 240, 0.82);
+  color: var(--ink);
+  font-weight: 950;
+  text-align: center;
+}
+
 .mode-grid,
 .article-buttons {
   display: grid;
@@ -605,6 +618,10 @@ p {
   margin-top: 14px;
 }
 
+.lesson-topic-row {
+  margin-top: 14px;
+}
+
 .home-actions button {
   min-height: 42px;
   padding: 0 8px;
@@ -661,6 +678,26 @@ p {
 .lesson-vocab small,
 .lesson-drill {
   color: var(--muted);
+}
+
+.lesson-drill-check {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+}
+
+.lesson-drill-check button {
+  min-height: 46px;
+  padding: 0 14px;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 950;
+}
+
+#lessonDrillFeedback {
+  color: var(--teal);
+  font-size: 0.88rem;
 }
 
 .scenario-card {

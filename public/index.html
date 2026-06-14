@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614n">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614n">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614o">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614o">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -62,6 +62,9 @@
             </button>
           </div>
 
+          <div class="lesson-topic-row">
+            <input id="lessonTopicInput" autocomplete="off" placeholder="Lesson topic, e.g. train station">
+          </div>
           <div class="home-actions">
             <button id="continueChatButton">Continue Last Chat</button>
             <button id="generateLessonButton">Generate Lesson</button>
@@ -77,6 +80,12 @@
             <div class="lesson-dialogue" id="lessonDialogue"></div>
             <div class="lesson-vocab" id="lessonVocab"></div>
             <div class="lesson-drill" id="lessonDrill"></div>
+            <div class="lesson-drill-check">
+              <input id="lessonDrillInput" autocomplete="off" placeholder="Answer the lesson drill">
+              <button id="checkLessonDrillButton">Check</button>
+            </div>
+            <strong id="lessonDrillFeedback">Use the drill prompt above.</strong>
+            <button class="secondary" id="practiceLessonButton">Practice in Chat</button>
             <button class="primary" id="completeLessonButton">Complete Lesson</button>
           </article>
           <article class="lesson-card" id="pastLessonsCard">
@@ -284,6 +293,7 @@
             <article><strong id="progressSessions">0</strong><span>Chats</span></article>
             <article><strong id="progressWords">0</strong><span>Words</span></article>
             <article><strong id="progressReps">0</strong><span>Reps today</span></article>
+            <article><strong id="progressLessons">0/0</strong><span>Lessons</span></article>
           </div>
           <article class="guide-card">
             <h2>Weakest words</h2>
@@ -353,6 +363,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614n" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614o" defer></script>
   </body>
 </html>
