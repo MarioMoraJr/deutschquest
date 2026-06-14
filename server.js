@@ -547,6 +547,24 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  const chatMatch = url.pathname.match(/^\/api\/chat\/([^/]+)$/);
+  if (chatMatch && req.method === "DELETE") {
+    const id = decodeURIComponent(chatMatch[1]);
+    state.sessions = state.sessions.filter(session => session.id !== id);
+    if (!state.sessions.length) {
+      state.sessions.push({
+        id: crypto.randomUUID(),
+        mode: "tutor",
+        title: "Tutor chat",
+        createdAt: new Date().toISOString(),
+        messages: [{ role: "assistant", content: "Hallo. Was möchtest du heute auf Deutsch üben?" }]
+      });
+    }
+    await writeState(state);
+    sendJson(res, 200, { sessions: state.sessions });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/vocab/suggest") {
     const body = await readBody(req);
     const text = String(body.text || "").trim();

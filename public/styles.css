@@ -185,6 +185,55 @@ p {
   padding-bottom: 8px;
 }
 
+.chat-history {
+  display: grid;
+  gap: 8px;
+  max-height: 220px;
+  margin: 2px 0 10px;
+  overflow: auto;
+}
+
+.chat-history.collapsed {
+  display: none;
+}
+
+.history-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 38px;
+  gap: 8px;
+}
+
+.history-open,
+.history-delete {
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+}
+
+.history-open {
+  display: grid;
+  gap: 3px;
+  min-height: 54px;
+  align-content: center;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.history-open small {
+  color: var(--muted);
+}
+
+.history-item.active .history-open {
+  background: rgba(15, 118, 110, 0.14);
+  color: var(--teal);
+}
+
+.history-delete {
+  min-height: 54px;
+  color: #be123c;
+  font-weight: 950;
+}
+
 .chat-actions {
   margin-bottom: 4px;
 }

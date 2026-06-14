@@ -39,6 +39,8 @@ const els = {
   levelBadge: document.querySelector("#levelBadge"),
   modelBadge: document.querySelector("#modelBadge"),
   newChatButton: document.querySelector("#newChatButton"),
+  toggleHistoryButton: document.querySelector("#toggleHistoryButton"),
+  chatHistory: document.querySelector("#chatHistory"),
   suggestVocabButton: document.querySelector("#suggestVocabButton"),
   toggleSaveWordButton: document.querySelector("#toggleSaveWordButton"),
   vocabSuggestions: document.querySelector("#vocabSuggestions"),
@@ -169,6 +171,7 @@ function renderChat() {
     ...messages.map(message => createBubble(message.role, message.content))
   );
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
+  renderHistory();
 }
 
 function createBubble(role, content = "") {
@@ -195,6 +198,37 @@ function renderDrills() {
     })
   );
   renderOrderDrill();
+}
+
+function renderHistory() {
+  els.chatHistory.replaceChildren(...state.sessions.map(session => {
+    const item = document.createElement("article");
+    item.className = `history-item${session.id === state.sessionId ? " active" : ""}`;
+
+    const open = document.createElement("button");
+    open.type = "button";
+    open.className = "history-open";
+    open.innerHTML = `<strong>${session.title || "Tutor chat"}</strong><small>${session.mode || "tutor"} · ${(session.messages || []).length} messages</small>`;
+    open.addEventListener("click", () => {
+      state.sessionId = session.id;
+      renderChat();
+      els.chatHistory.classList.add("collapsed");
+      els.toggleHistoryButton.setAttribute("aria-expanded", "false");
+    });
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "history-delete";
+    remove.textContent = "X";
+    remove.setAttribute("aria-label", "Delete chat");
+    remove.addEventListener("click", event => {
+      event.stopPropagation();
+      deleteChat(session.id);
+    });
+
+    item.append(open, remove);
+    return item;
+  }));
 }
 
 function shuffle(items) {
@@ -299,6 +333,14 @@ async function newChat() {
   state.sessions.unshift(result.session);
   state.sessionId = result.session.id;
   state.roleplayPrompt = "";
+  renderChat();
+  switchView("chatView");
+}
+
+async function deleteChat(id) {
+  const result = await api(`api/chat/${encodeURIComponent(id)}`, { method: "DELETE" });
+  state.sessions = result.sessions || [];
+  if (state.sessionId === id) state.sessionId = state.sessions[0]?.id || null;
   renderChat();
 }
 
@@ -419,6 +461,12 @@ els.beginRoleplay.addEventListener("click", async () => {
 });
 
 els.newChatButton.addEventListener("click", newChat);
+
+els.toggleHistoryButton.addEventListener("click", () => {
+  const collapsed = els.chatHistory.classList.toggle("collapsed");
+  els.toggleHistoryButton.setAttribute("aria-expanded", String(!collapsed));
+  renderHistory();
+});
 
 document.querySelectorAll("[data-reply]").forEach(button => {
   button.addEventListener("click", async () => {
@@ -575,7 +623,7 @@ els.backupButton.addEventListener("click", async () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614h`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614i`));
 }
 
 loadApp().catch(error => {

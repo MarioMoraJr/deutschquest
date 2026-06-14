@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614h">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614h">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614i">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614i">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -92,9 +92,11 @@
           </div>
           <div class="chat-actions">
             <button id="newChatButton">New Chat</button>
+            <button id="toggleHistoryButton" aria-expanded="false">History</button>
             <button id="suggestVocabButton">Suggest Words</button>
             <button id="toggleSaveWordButton" aria-expanded="false">Save Word</button>
           </div>
+          <div class="chat-history collapsed" id="chatHistory"></div>
           <div class="quick-replies">
             <button data-reply="Ich verstehe nicht. Kannst du es einfacher sagen?">Simpler</button>
             <button data-reply="Bitte korrigiere meinen letzten Satz.">Correct me</button>
@@ -220,6 +222,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614h" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614i" defer></script>
   </body>
 </html>
