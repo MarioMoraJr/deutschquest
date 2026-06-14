@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
-    <link rel="manifest" href="manifest.webmanifest?v=20260614b">
-    <link rel="stylesheet" href="styles.css?v=20260614b">
+    <link rel="manifest" href="manifest.webmanifest?v=20260614c">
+    <link rel="stylesheet" href="styles.css?v=20260614c">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -90,6 +90,17 @@
             <span id="modelBadge">Ollama</span>
           </div>
           <div class="chat-panel" id="chatPanel"></div>
+          <form class="save-word-form" id="saveWordForm">
+            <input id="saveGerman" autocomplete="off" placeholder="German word">
+            <input id="saveEnglish" autocomplete="off" placeholder="English">
+            <select id="saveArticle" aria-label="Article">
+              <option value="">none</option>
+              <option value="der">der</option>
+              <option value="die">die</option>
+              <option value="das">das</option>
+            </select>
+            <button>Save</button>
+          </form>
           <form class="composer" id="chatForm">
             <input id="chatInput" autocomplete="off" placeholder="Reply in German...">
             <button aria-label="Send message">Go</button>
@@ -145,6 +156,26 @@
             <button class="primary">Run Tool</button>
           </form>
           <article class="tool-output" id="toolOutput">Your result will appear here.</article>
+
+          <form class="settings-card" id="settingsForm">
+            <div class="section-head compact">
+              <h2>Settings</h2>
+              <span>Profile</span>
+            </div>
+            <label for="nameInput">Name</label>
+            <input id="nameInput" autocomplete="name">
+            <label for="levelSelect">Level</label>
+            <select id="levelSelect">
+              <option value="A1">A1</option>
+              <option value="A2">A2</option>
+              <option value="B1">B1</option>
+              <option value="B2">B2</option>
+            </select>
+            <label for="dailyGoalInput">Daily reps</label>
+            <input id="dailyGoalInput" type="number" min="1" max="99" inputmode="numeric">
+            <button class="primary">Save Settings</button>
+            <strong id="settingsStatus"></strong>
+          </form>
         </section>
       </main>
 
@@ -156,6 +187,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="app.js?v=20260614b" defer></script>
+    <script src="app.js?v=20260614c" defer></script>
   </body>
 </html>

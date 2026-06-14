@@ -32,6 +32,10 @@ const els = {
   chatPanel: document.querySelector("#chatPanel"),
   chatForm: document.querySelector("#chatForm"),
   chatInput: document.querySelector("#chatInput"),
+  saveWordForm: document.querySelector("#saveWordForm"),
+  saveGerman: document.querySelector("#saveGerman"),
+  saveEnglish: document.querySelector("#saveEnglish"),
+  saveArticle: document.querySelector("#saveArticle"),
   beginRoleplay: document.querySelector("#beginRoleplay"),
   drillWord: document.querySelector("#drillWord"),
   drillFeedback: document.querySelector("#drillFeedback"),
@@ -39,7 +43,12 @@ const els = {
   toolForm: document.querySelector("#toolForm"),
   toolSelect: document.querySelector("#toolSelect"),
   toolInput: document.querySelector("#toolInput"),
-  toolOutput: document.querySelector("#toolOutput")
+  toolOutput: document.querySelector("#toolOutput"),
+  settingsForm: document.querySelector("#settingsForm"),
+  nameInput: document.querySelector("#nameInput"),
+  levelSelect: document.querySelector("#levelSelect"),
+  dailyGoalInput: document.querySelector("#dailyGoalInput"),
+  settingsStatus: document.querySelector("#settingsStatus")
 };
 
 function authHeaders() {
@@ -103,6 +112,9 @@ function renderHome() {
   els.questScenario.textContent = state.currentQuest.scenario || "Practice one useful conversation today.";
   els.questProgress.style.width = `${state.currentQuest.progress || 0}%`;
   els.goalProgress.textContent = `${state.profile.completedToday || 0}/${state.profile.dailyGoal || 15} reps`;
+  els.nameInput.value = state.profile.name || "";
+  els.levelSelect.value = state.profile.level || "A2";
+  els.dailyGoalInput.value = state.profile.dailyGoal || 15;
 }
 
 function renderScenarios() {
@@ -335,8 +347,47 @@ els.toolForm.addEventListener("submit", async event => {
   }
 });
 
+els.saveWordForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  const german = els.saveGerman.value.trim();
+  if (!german) return;
+  const word = await api("api/words", {
+    method: "POST",
+    body: JSON.stringify({
+      german,
+      english: els.saveEnglish.value.trim(),
+      article: els.saveArticle.value
+    })
+  });
+  state.words.unshift(word);
+  els.saveGerman.value = "";
+  els.saveEnglish.value = "";
+  els.saveArticle.value = "";
+  renderDrills();
+});
+
+els.settingsForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  els.settingsStatus.textContent = "Saving...";
+  try {
+    const profile = await api("api/profile", {
+      method: "PATCH",
+      body: JSON.stringify({
+        name: els.nameInput.value,
+        level: els.levelSelect.value,
+        dailyGoal: Number(els.dailyGoalInput.value)
+      })
+    });
+    state.profile = profile;
+    renderHome();
+    els.settingsStatus.textContent = "Saved";
+  } catch (error) {
+    els.settingsStatus.textContent = error.message;
+  }
+});
+
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614b"));
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614c"));
 }
 
 loadApp().catch(error => {

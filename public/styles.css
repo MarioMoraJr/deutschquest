@@ -163,6 +163,53 @@ p {
   -webkit-backdrop-filter: blur(14px);
 }
 
+.save-word-form,
+.settings-card {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.save-word-form {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.save-word-form select,
+.save-word-form button {
+  min-height: 42px;
+}
+
+.save-word-form button {
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 950;
+}
+
+.settings-card {
+  margin-top: 18px;
+}
+
+.settings-card label {
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 950;
+}
+
+.section-head.compact {
+  margin: 0 0 4px;
+}
+
+#settingsStatus {
+  min-height: 20px;
+  color: var(--teal);
+  font-size: 0.86rem;
+}
+
 .loading .quest-hero,
 .loading .mode-card,
 .loading .quest-row {

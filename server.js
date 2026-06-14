@@ -638,6 +638,9 @@ async function handleApi(req, res, url) {
     const body = await readBody(req);
     if (typeof body.level === "string") state.profile.level = body.level.slice(0, 4);
     if (typeof body.name === "string" && body.name.trim()) state.profile.name = body.name.trim().slice(0, 40);
+    if (Number.isFinite(Number(body.dailyGoal))) {
+      state.profile.dailyGoal = Math.max(1, Math.min(99, Number(body.dailyGoal)));
+    }
     await writeState(state);
     sendJson(res, 200, state.profile);
     return;

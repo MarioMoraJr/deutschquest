@@ -5,7 +5,8 @@
   "description": "Mobile-first German learning app with local Ollama tutoring.",
   "scripts": {
     "start": "node --disable-warning=ExperimentalWarning server.js",
-    "dev": "node --disable-warning=ExperimentalWarning server.js"
+    "dev": "node --disable-warning=ExperimentalWarning server.js",
+    "backup": "node --disable-warning=ExperimentalWarning scripts/backup-sqlite.js"
   },
   "engines": {
     "node": ">=24"

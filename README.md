@@ -84,4 +84,22 @@ The old JSON file, if present, is used only as first-run migration seed data. Ru
 
 ## Docker
 
-The app is not currently containerized. If Docker deployment is desired, use `host.docker.internal:11434` for Ollama from a Windows-hosted container, or run Ollama in the same Docker network.
+The app includes a `Dockerfile` and is wired into `C:\Users\mario\server\docker-compose.yml`.
+
+From `C:\Users\mario\server`:
+
+```powershell
+docker compose up -d --build deutschquest
+```
+
+The compose service uses `host.docker.internal:11434` so the container can reach Ollama running on the Windows host.
+
+## Backup
+
+Create a consistent SQLite backup:
+
+```powershell
+npm run backup
+```
+
+Backups are written to `backups/` and ignored by git.
