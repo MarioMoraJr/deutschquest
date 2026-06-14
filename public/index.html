@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614d">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614d">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614e">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614e">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -90,7 +90,17 @@
             <h2>Tutor Chat</h2>
             <span id="modelBadge">Ollama</span>
           </div>
+          <div class="chat-actions">
+            <button id="newChatButton">New Chat</button>
+            <button id="suggestVocabButton">Suggest Words</button>
+          </div>
+          <div class="quick-replies">
+            <button data-reply="Ich verstehe nicht. Kannst du es einfacher sagen?">Simpler</button>
+            <button data-reply="Bitte korrigiere meinen letzten Satz.">Correct me</button>
+            <button data-reply="Gib mir einen kleinen Hinweis.">Hint</button>
+          </div>
           <div class="chat-panel" id="chatPanel"></div>
+          <div class="vocab-suggestions" id="vocabSuggestions"></div>
           <form class="save-word-form" id="saveWordForm">
             <input id="saveGerman" autocomplete="off" placeholder="German word">
             <input id="saveEnglish" autocomplete="off" placeholder="English">
@@ -138,6 +148,18 @@
             </div>
             <strong id="drillFeedback">Ready</strong>
           </div>
+          <div class="drill-card word-order-card">
+            <p class="eyebrow">Word Order</p>
+            <h2 id="orderPrompt">Arrange the sentence</h2>
+            <div class="word-bank" id="wordBank"></div>
+            <div class="sentence-build" id="sentenceBuild"></div>
+            <div class="article-buttons">
+              <button id="checkOrderButton">Check</button>
+              <button id="clearOrderButton">Clear</button>
+              <button id="nextOrderButton">Next</button>
+            </div>
+            <strong id="orderFeedback">Build the sentence.</strong>
+          </div>
           <div class="word-list" id="wordList"></div>
         </section>
 
@@ -177,6 +199,15 @@
             <button class="primary">Save Settings</button>
             <strong id="settingsStatus"></strong>
           </form>
+
+          <div class="settings-card">
+            <div class="section-head compact">
+              <h2>Backup</h2>
+              <span>SQLite</span>
+            </div>
+            <button class="primary" id="backupButton">Create Backup</button>
+            <strong id="backupStatus"></strong>
+          </div>
         </section>
       </main>
 
@@ -188,6 +219,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614d" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614e" defer></script>
   </body>
 </html>

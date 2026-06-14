@@ -32,6 +32,7 @@ const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = path.join(__dirname, "data");
 const JSON_DATA_FILE = path.join(DATA_DIR, "deutschquest.json");
 const DB_FILE = path.join(DATA_DIR, "deutschquest.sqlite");
+const BACKUP_DIR = path.join(__dirname, "backups");
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -473,6 +474,15 @@ function publicConfig() {
   };
 }
 
+function createBackup() {
+  fsSync.mkdirSync(BACKUP_DIR, { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+  const backupPath = path.join(BACKUP_DIR, `deutschquest-${stamp}.sqlite`);
+  const escaped = backupPath.replaceAll("'", "''");
+  db.exec(`VACUUM INTO '${escaped}'`);
+  return backupPath;
+}
+
 async function requireAuth(req, res) {
   if (verifyToken(authToken(req))) return true;
   sendJson(res, 401, { error: "App password required." });
@@ -505,6 +515,64 @@ async function handleApi(req, res, url) {
       ollama: { url: OLLAMA_URL, model: OLLAMA_MODEL },
       basePath: BASE_PATH
     });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/backup") {
+    const backupPath = createBackup();
+    sendJson(res, 200, { backupPath });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/chat/new") {
+    const body = await readBody(req);
+    const scenario = state.scenarios.find(item => item.id === body.scenarioId);
+    const session = {
+      id: crypto.randomUUID(),
+      mode: String(body.mode || "tutor"),
+      title: scenario ? scenario.title : String(body.title || "Tutor chat").slice(0, 80),
+      createdAt: new Date().toISOString(),
+      messages: [
+        {
+          role: "assistant",
+          content: scenario
+            ? `Bereit: ${scenario.title}. ${scenario.goal}`
+            : "Hallo. Was möchtest du heute auf Deutsch üben?"
+        }
+      ]
+    };
+    state.sessions.unshift(session);
+    await writeState(state);
+    sendJson(res, 201, { session });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/vocab/suggest") {
+    const body = await readBody(req);
+    const text = String(body.text || "").trim();
+    if (!text) {
+      sendJson(res, 400, { error: "Text is required." });
+      return;
+    }
+    const prompt = [
+      "Extract 3 useful German vocabulary cards from this tutor/chat text.",
+      "Return strict JSON only as an array of objects with keys: german, english, article.",
+      "Use article as der, die, das, or empty string.",
+      text
+    ].join("\n");
+    const raw = await askOllama([{ role: "user", content: prompt }], state.profile.level, "tool");
+    const json = raw.match(/\[[\s\S]*\]/)?.[0] || "[]";
+    let suggestions = [];
+    try {
+      suggestions = JSON.parse(json).slice(0, 5).map(item => ({
+        german: String(item.german || "").trim(),
+        english: String(item.english || "").trim(),
+        article: ["der", "die", "das"].includes(item.article) ? item.article : ""
+      })).filter(item => item.german);
+    } catch {
+      suggestions = [];
+    }
+    sendJson(res, 200, { suggestions, raw });
     return;
   }
 
@@ -611,6 +679,24 @@ async function handleApi(req, res, url) {
       word,
       currentQuest: state.currentQuest
     });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/drills/word-order") {
+    const body = await readBody(req);
+    const answer = String(body.answer || "").trim().replace(/\s+/g, " ");
+    const expected = String(body.expected || "").trim().replace(/\s+/g, " ");
+    if (!expected) {
+      sendJson(res, 400, { error: "Expected sentence is required." });
+      return;
+    }
+    const correct = answer.toLocaleLowerCase("de-DE") === expected.toLocaleLowerCase("de-DE");
+    const xpDelta = correct ? 15 : 3;
+    state.profile.xp = (state.profile.xp || 0) + xpDelta;
+    state.profile.completedToday = (state.profile.completedToday || 0) + 1;
+    state.currentQuest.progress = Math.min(100, (state.currentQuest.progress || 0) + (correct ? 5 : 1));
+    await writeState(state);
+    sendJson(res, 200, { correct, expected, xpDelta, profile: state.profile, currentQuest: state.currentQuest });
     return;
   }
 

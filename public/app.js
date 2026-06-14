@@ -15,8 +15,17 @@ const state = {
   sessions: [],
   sessionId: null,
   drillIndex: 0,
-  roleplayPrompt: ""
+  roleplayPrompt: "",
+  orderIndex: 0,
+  orderBuild: [],
+  orderBank: []
 };
+
+const orderDrills = [
+  { prompt: "I would like two rolls.", expected: "Ich hätte gern zwei Brötchen" },
+  { prompt: "Where does the train leave from?", expected: "Von welchem Gleis fährt der Zug" },
+  { prompt: "Can you say that more slowly?", expected: "Kannst du das langsamer sagen" }
+];
 
 const els = {
   app: document.querySelector(".app"),
@@ -29,6 +38,9 @@ const els = {
   streak: document.querySelector("#streak"),
   levelBadge: document.querySelector("#levelBadge"),
   modelBadge: document.querySelector("#modelBadge"),
+  newChatButton: document.querySelector("#newChatButton"),
+  suggestVocabButton: document.querySelector("#suggestVocabButton"),
+  vocabSuggestions: document.querySelector("#vocabSuggestions"),
   questTitle: document.querySelector("#questTitle"),
   questScenario: document.querySelector("#questScenario"),
   questProgress: document.querySelector("#questProgress"),
@@ -44,6 +56,13 @@ const els = {
   beginRoleplay: document.querySelector("#beginRoleplay"),
   drillWord: document.querySelector("#drillWord"),
   drillFeedback: document.querySelector("#drillFeedback"),
+  orderPrompt: document.querySelector("#orderPrompt"),
+  wordBank: document.querySelector("#wordBank"),
+  sentenceBuild: document.querySelector("#sentenceBuild"),
+  checkOrderButton: document.querySelector("#checkOrderButton"),
+  clearOrderButton: document.querySelector("#clearOrderButton"),
+  nextOrderButton: document.querySelector("#nextOrderButton"),
+  orderFeedback: document.querySelector("#orderFeedback"),
   wordList: document.querySelector("#wordList"),
   toolForm: document.querySelector("#toolForm"),
   toolSelect: document.querySelector("#toolSelect"),
@@ -53,7 +72,9 @@ const els = {
   nameInput: document.querySelector("#nameInput"),
   levelSelect: document.querySelector("#levelSelect"),
   dailyGoalInput: document.querySelector("#dailyGoalInput"),
-  settingsStatus: document.querySelector("#settingsStatus")
+  settingsStatus: document.querySelector("#settingsStatus"),
+  backupButton: document.querySelector("#backupButton"),
+  backupStatus: document.querySelector("#backupStatus")
 };
 
 function authHeaders() {
@@ -138,6 +159,7 @@ function renderScenarios() {
 function renderChat() {
   const session = state.sessions.find(item => item.id === state.sessionId) || state.sessions[0];
   const messages = session?.messages || [];
+  document.querySelector("#chatView .section-head h2").textContent = session?.title || "Tutor Chat";
   if (!messages.length) {
     els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was möchtest du heute auf Deutsch üben?</div>`;
     return;
@@ -171,6 +193,56 @@ function renderDrills() {
       return row;
     })
   );
+  renderOrderDrill();
+}
+
+function shuffle(items) {
+  return [...items].sort(() => Math.random() - 0.5);
+}
+
+function currentOrderDrill() {
+  return orderDrills[state.orderIndex % orderDrills.length];
+}
+
+function renderOrderDrill() {
+  const drill = currentOrderDrill();
+  els.orderPrompt.textContent = drill.prompt;
+  if (!state.orderBank.length) {
+    state.orderBank = shuffle(drill.expected.split(" ").map((word, index) => ({ word, index })));
+  }
+  els.wordBank.replaceChildren(...state.orderBank.map(item => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.index = item.index;
+    button.textContent = item.word;
+    button.disabled = state.orderBuild.some(build => build.index === item.index);
+    button.addEventListener("click", () => {
+      state.orderBuild.push(item);
+      renderOrderBuild();
+      renderOrderBankOnly();
+    });
+    return button;
+  }));
+  renderOrderBuild();
+}
+
+function renderOrderBankOnly() {
+  els.wordBank.querySelectorAll("button").forEach(button => {
+    button.disabled = state.orderBuild.some(item => item.index === Number(button.dataset.index));
+  });
+}
+
+function renderOrderBuild() {
+  els.sentenceBuild.replaceChildren(...state.orderBuild.map((item, index) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = item.word;
+    button.addEventListener("click", () => {
+      state.orderBuild.splice(index, 1);
+      renderOrderDrill();
+    });
+    return button;
+  }));
 }
 
 function render() {
@@ -216,6 +288,17 @@ async function chooseScenario(id) {
   state.roleplayPrompt = result.scenario.prompt;
   renderHome();
   switchView("roleplayView");
+}
+
+async function newChat() {
+  const result = await api("api/chat/new", {
+    method: "POST",
+    body: JSON.stringify({ mode: "tutor", title: "Tutor chat" })
+  });
+  state.sessions.unshift(result.session);
+  state.sessionId = result.session.id;
+  state.roleplayPrompt = "";
+  renderChat();
 }
 
 function updateSessionMessages(sessionId, messages, mode = "tutor") {
@@ -315,7 +398,54 @@ els.chatForm.addEventListener("submit", async event => {
 
 els.beginRoleplay.addEventListener("click", async () => {
   switchView("chatView");
+  const scenario = state.scenarios.find(item => item.prompt === state.roleplayPrompt);
+  const result = await api("api/chat/new", {
+    method: "POST",
+    body: JSON.stringify({ mode: "roleplay", scenarioId: scenario?.id })
+  });
+  state.sessions.unshift(result.session);
+  state.sessionId = result.session.id;
+  renderChat();
   await sendChat(state.roleplayPrompt || "Start the roleplay in simple German.", "roleplay");
+});
+
+els.newChatButton.addEventListener("click", newChat);
+
+document.querySelectorAll("[data-reply]").forEach(button => {
+  button.addEventListener("click", async () => {
+    els.chatInput.value = button.dataset.reply;
+    els.chatForm.requestSubmit();
+  });
+});
+
+els.suggestVocabButton.addEventListener("click", async () => {
+  const session = state.sessions.find(item => item.id === state.sessionId) || state.sessions[0];
+  const text = (session?.messages || []).slice(-4).map(message => message.content).join("\n");
+  els.vocabSuggestions.textContent = "Finding useful words...";
+  const result = await api("api/vocab/suggest", {
+    method: "POST",
+    body: JSON.stringify({ text })
+  });
+  if (!result.suggestions.length) {
+    els.vocabSuggestions.textContent = "No suggestions found.";
+    return;
+  }
+  els.vocabSuggestions.replaceChildren(...result.suggestions.map(suggestion => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = `<strong>${suggestion.article ? `${suggestion.article} ` : ""}${suggestion.german}</strong><small>${suggestion.english}</small>`;
+    button.addEventListener("click", async () => {
+      const word = await api("api/words", {
+        method: "POST",
+        body: JSON.stringify(suggestion)
+      });
+      state.words.unshift(word);
+      button.disabled = true;
+      button.querySelector("small").textContent = "Saved";
+      renderDrills();
+    });
+    return button;
+  }));
 });
 
 document.querySelectorAll("[data-article]").forEach(button => {
@@ -334,6 +464,33 @@ document.querySelectorAll("[data-article]").forEach(button => {
     renderHome();
     setTimeout(renderDrills, 700);
   });
+});
+
+els.clearOrderButton.addEventListener("click", () => {
+  state.orderBuild = [];
+  els.orderFeedback.textContent = "Build the sentence.";
+  renderOrderDrill();
+});
+
+els.nextOrderButton.addEventListener("click", () => {
+  state.orderIndex += 1;
+  state.orderBuild = [];
+  state.orderBank = [];
+  els.orderFeedback.textContent = "Build the sentence.";
+  renderOrderDrill();
+});
+
+els.checkOrderButton.addEventListener("click", async () => {
+  const drill = currentOrderDrill();
+  const answer = state.orderBuild.map(item => item.word).join(" ");
+  const result = await api("api/drills/word-order", {
+    method: "POST",
+    body: JSON.stringify({ answer, expected: drill.expected })
+  });
+  state.profile = result.profile;
+  state.currentQuest = result.currentQuest;
+  els.orderFeedback.textContent = result.correct ? `Richtig! +${result.xpDelta} XP` : `Correct: ${result.expected}`;
+  renderHome();
 });
 
 els.toolForm.addEventListener("submit", async event => {
@@ -391,8 +548,18 @@ els.settingsForm.addEventListener("submit", async event => {
   }
 });
 
+els.backupButton.addEventListener("click", async () => {
+  els.backupStatus.textContent = "Creating backup...";
+  try {
+    const result = await api("api/backup", { method: "POST", body: "{}" });
+    els.backupStatus.textContent = result.backupPath.split(/[\\/]/).pop();
+  } catch (error) {
+    els.backupStatus.textContent = error.message;
+  }
+});
+
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614d`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614e`));
 }
 
 loadApp().catch(error => {
