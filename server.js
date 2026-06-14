@@ -1,12 +1,32 @@
 const http = require("http");
 const fs = require("fs/promises");
+const fsSync = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+
+const ENV_FILE = path.join(__dirname, ".env");
+
+function loadEnvFile() {
+  if (!fsSync.existsSync(ENV_FILE)) return;
+  const raw = fsSync.readFileSync(ENV_FILE, "utf8");
+  raw.split(/\r?\n/).forEach(line => {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) return;
+    const index = trimmed.indexOf("=");
+    const key = trimmed.slice(0, index).trim();
+    const value = trimmed.slice(index + 1).trim().replace(/^["']|["']$/g, "");
+    if (key && process.env[key] === undefined) process.env[key] = value;
+  });
+}
+
+loadEnvFile();
 
 const PORT = Number(process.env.PORT || 3100);
 const HOST = process.env.HOST || "0.0.0.0";
 const OLLAMA_URL = process.env.OLLAMA_URL || "http://127.0.0.1:11434";
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL || "llama3.1:8b";
+const APP_PASSWORD = process.env.APP_PASSWORD || "";
+const BASE_PATH = normalizeBasePath(process.env.BASE_PATH || "");
 const PUBLIC_DIR = path.join(__dirname, "public");
 const DATA_DIR = path.join(__dirname, "data");
 const DATA_FILE = path.join(DATA_DIR, "deutschquest.json");
@@ -26,7 +46,8 @@ const defaultState = {
     level: "A2",
     streak: 8,
     xp: 1240,
-    dailyGoal: 15
+    dailyGoal: 15,
+    completedToday: 0
   },
   currentQuest: {
     title: "Order breakfast in Berlin",
@@ -34,9 +55,40 @@ const defaultState = {
     progress: 62
   },
   words: [
-    { id: crypto.randomUUID(), german: "das Broetchen", english: "bread roll", article: "das", strength: 2 },
+    { id: crypto.randomUUID(), german: "das Brötchen", english: "bread roll", article: "das", strength: 2 },
     { id: crypto.randomUUID(), german: "der Kaffee", english: "coffee", article: "der", strength: 4 },
+    { id: crypto.randomUUID(), german: "die Milch", english: "milk", article: "die", strength: 3 },
     { id: crypto.randomUUID(), german: "frisch", english: "fresh", article: "", strength: 1 }
+  ],
+  scenarios: [
+    {
+      id: "bakery",
+      title: "Bakery in Berlin",
+      place: "Bakery",
+      goal: "Buy two rolls, ask what is fresh, and order coffee politely.",
+      prompt: "Start a bakery roleplay. You are the shopkeeper. Greet me in simple German."
+    },
+    {
+      id: "train",
+      title: "Train Station",
+      place: "Munich Hbf",
+      goal: "Buy a ticket, ask the platform, and confirm departure time.",
+      prompt: "Start a train station roleplay. You are a helpful ticket clerk. Keep German at A2."
+    },
+    {
+      id: "restaurant",
+      title: "Restaurant Dinner",
+      place: "Restaurant",
+      goal: "Ask for a table, order food, and request the bill.",
+      prompt: "Start a restaurant roleplay. You are the server. Use friendly A2 German."
+    },
+    {
+      id: "doctor",
+      title: "Doctor Visit",
+      place: "Clinic",
+      goal: "Explain symptoms, answer questions, and understand advice.",
+      prompt: "Start a doctor appointment roleplay. You are the receptionist first, then the doctor."
+    }
   ],
   sessions: [
     {
@@ -47,12 +99,50 @@ const defaultState = {
       messages: [
         {
           role: "assistant",
-          content: "Guten Morgen. Was moechtest du beim Baecker bestellen?"
+          content: "Guten Morgen. Was möchtest du beim Bäcker bestellen?"
         }
       ]
     }
   ]
 };
+
+function normalizeBasePath(value) {
+  const cleaned = String(value || "").trim().replace(/^\/+|\/+$/g, "");
+  return cleaned ? `/${cleaned}` : "";
+}
+
+function signToken(value) {
+  return crypto.createHmac("sha256", APP_PASSWORD || "dev").update(value).digest("hex");
+}
+
+function makeToken() {
+  const payload = Buffer.from(JSON.stringify({
+    exp: Date.now() + 1000 * 60 * 60 * 24 * 30,
+    nonce: crypto.randomUUID()
+  })).toString("base64url");
+  return `${payload}.${signToken(payload)}`;
+}
+
+function verifyToken(token) {
+  if (!APP_PASSWORD) return true;
+  if (!token || !token.includes(".")) return false;
+  const [payload, signature] = token.split(".");
+  const expected = signToken(payload);
+  const left = Buffer.from(signature);
+  const right = Buffer.from(expected);
+  if (left.length !== right.length || !crypto.timingSafeEqual(left, right)) return false;
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+    return Number(parsed.exp) > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+function authToken(req) {
+  const header = req.headers.authorization || "";
+  return header.startsWith("Bearer ") ? header.slice(7) : "";
+}
 
 async function ensureDataFile() {
   await fs.mkdir(DATA_DIR, { recursive: true });
@@ -65,7 +155,29 @@ async function ensureDataFile() {
 
 async function readState() {
   await ensureDataFile();
-  return JSON.parse(await fs.readFile(DATA_FILE, "utf8"));
+  const state = JSON.parse(await fs.readFile(DATA_FILE, "utf8"));
+  state.profile = { ...defaultState.profile, ...(state.profile || {}) };
+  state.words = Array.isArray(state.words) ? state.words : defaultState.words;
+  state.words = state.words.map(word => ({
+    ...word,
+    german: word.german === "das Broetchen" ? "das Brötchen" : word.german
+  }));
+  state.scenarios = Array.isArray(state.scenarios) ? state.scenarios : defaultState.scenarios;
+  for (const scenario of defaultState.scenarios) {
+    if (!state.scenarios.some(item => item.id === scenario.id)) state.scenarios.push(scenario);
+  }
+  state.sessions = Array.isArray(state.sessions) ? state.sessions : defaultState.sessions;
+  state.sessions.forEach(session => {
+    session.messages = (session.messages || []).map(message => ({
+      ...message,
+      content: message.content
+        .replaceAll("moechtest", "möchtest")
+        .replaceAll("ueben", "üben")
+        .replaceAll("Baecker", "Bäcker")
+    }));
+  });
+  state.currentQuest = { ...defaultState.currentQuest, ...(state.currentQuest || {}) };
+  return state;
 }
 
 async function writeState(state) {
@@ -83,6 +195,11 @@ function sendJson(res, status, payload) {
     return;
   }
   res.end(JSON.stringify(payload));
+}
+
+function sendEvent(res, event, payload) {
+  res.write(`event: ${event}\n`);
+  res.write(`data: ${JSON.stringify(payload)}\n\n`);
 }
 
 function readBody(req) {
@@ -128,10 +245,7 @@ async function askOllama(messages, level, mode) {
     body: JSON.stringify({
       model: OLLAMA_MODEL,
       stream: false,
-      messages: [
-        { role: "system", content: systemPrompt(level, mode) },
-        ...messages
-      ],
+      messages: [{ role: "system", content: systemPrompt(level, mode) }, ...messages],
       options: {
         temperature: mode === "drill" ? 0.35 : 0.7,
         num_predict: 260
@@ -139,57 +253,133 @@ async function askOllama(messages, level, mode) {
     })
   });
 
-  if (!response.ok) {
-    throw new Error(`Ollama returned ${response.status}. Is Ollama running with ${OLLAMA_MODEL}?`);
-  }
-
+  if (!response.ok) throw new Error(`Ollama returned ${response.status}. Is ${OLLAMA_MODEL} available?`);
   const payload = await response.json();
   return payload.message?.content?.trim() || "Ich bin bereit. Was moechtest du ueben?";
 }
 
+async function streamOllama(messages, level, mode, onChunk) {
+  const response = await fetch(`${OLLAMA_URL}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: OLLAMA_MODEL,
+      stream: true,
+      messages: [{ role: "system", content: systemPrompt(level, mode) }, ...messages],
+      options: {
+        temperature: mode === "drill" ? 0.35 : 0.7,
+        num_predict: 260
+      }
+    })
+  });
+
+  if (!response.ok) throw new Error(`Ollama returned ${response.status}. Is ${OLLAMA_MODEL} available?`);
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let full = "";
+  for await (const chunk of response.body) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() || "";
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      const payload = JSON.parse(line);
+      const content = payload.message?.content || "";
+      if (content) {
+        full += content;
+        onChunk(content);
+      }
+    }
+  }
+  return full.trim();
+}
+
+function publicConfig() {
+  return {
+    authRequired: Boolean(APP_PASSWORD),
+    basePath: BASE_PATH,
+    assetVersion: "20260614b"
+  };
+}
+
+async function requireAuth(req, res) {
+  if (verifyToken(authToken(req))) return true;
+  sendJson(res, 401, { error: "App password required." });
+  return false;
+}
+
 async function handleApi(req, res, url) {
+  if (req.method === "GET" && url.pathname === "/api/config") {
+    sendJson(res, 200, publicConfig());
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/login") {
+    const body = await readBody(req);
+    if (!APP_PASSWORD || String(body.password || "") === APP_PASSWORD) {
+      sendJson(res, 200, { token: makeToken(), ...publicConfig() });
+      return;
+    }
+    sendJson(res, 401, { error: "Wrong app password." });
+    return;
+  }
+
+  if (!(await requireAuth(req, res))) return;
+
   const state = await readState();
 
   if (req.method === "GET" && url.pathname === "/api/app") {
     sendJson(res, 200, {
       ...state,
-      ollama: {
-        url: OLLAMA_URL,
-        model: OLLAMA_MODEL
-      }
+      ollama: { url: OLLAMA_URL, model: OLLAMA_MODEL },
+      basePath: BASE_PATH
     });
     return;
   }
 
   if (req.method === "POST" && url.pathname === "/api/chat") {
     const body = await readBody(req);
+    const { session } = prepareSession(state, body);
     const message = String(body.message || "").trim();
-    const mode = String(body.mode || "tutor");
     if (!message) {
       sendJson(res, 400, { error: "Message is required." });
       return;
     }
-
-    const sessionId = String(body.sessionId || state.sessions[0]?.id || crypto.randomUUID());
-    let session = state.sessions.find(item => item.id === sessionId);
-    if (!session) {
-      session = {
-        id: sessionId,
-        mode,
-        title: mode === "roleplay" ? "Roleplay" : "Tutor chat",
-        createdAt: new Date().toISOString(),
-        messages: []
-      };
-      state.sessions.unshift(session);
-    }
-
-    session.mode = mode;
     session.messages.push({ role: "user", content: message });
-    const recentMessages = session.messages.slice(-10);
-    const answer = await askOllama(recentMessages, state.profile.level, mode);
+    const answer = await askOllama(session.messages.slice(-10), state.profile.level, session.mode);
     session.messages.push({ role: "assistant", content: answer });
     await writeState(state);
     sendJson(res, 200, { sessionId: session.id, answer, messages: session.messages });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/chat/stream") {
+    const body = await readBody(req);
+    const message = String(body.message || "").trim();
+    if (!message) {
+      sendJson(res, 400, { error: "Message is required." });
+      return;
+    }
+    const { session } = prepareSession(state, body);
+    session.messages.push({ role: "user", content: message });
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-store",
+      "Connection": "keep-alive"
+    });
+    try {
+      const answer = await streamOllama(session.messages.slice(-10), state.profile.level, session.mode, chunk => {
+        sendEvent(res, "chunk", { chunk });
+      });
+      session.messages.push({ role: "assistant", content: answer });
+      await writeState(state);
+      sendEvent(res, "done", { sessionId: session.id, messages: session.messages });
+    } catch (error) {
+      sendEvent(res, "error", { error: error.message || "Streaming failed." });
+    } finally {
+      res.end();
+    }
     return;
   }
 
@@ -209,6 +399,48 @@ async function handleApi(req, res, url) {
     };
     const answer = await askOllama([{ role: "user", content: prompts[tool] || prompts.explain }], state.profile.level, "tool");
     sendJson(res, 200, { answer });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/scenario") {
+    const body = await readBody(req);
+    const scenario = state.scenarios.find(item => item.id === body.id) || state.scenarios[0];
+    if (!scenario) {
+      sendJson(res, 404, { error: "Scenario not found." });
+      return;
+    }
+    state.currentQuest = {
+      title: scenario.title,
+      scenario: scenario.goal,
+      progress: 0
+    };
+    await writeState(state);
+    sendJson(res, 200, { currentQuest: state.currentQuest, scenario });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/drills/answer") {
+    const body = await readBody(req);
+    const word = state.words.find(item => item.id === String(body.wordId || ""));
+    if (!word) {
+      sendJson(res, 404, { error: "Word not found." });
+      return;
+    }
+    const correct = Boolean(word.article) && String(body.answer || "") === word.article;
+    const xpDelta = correct ? 10 : 2;
+    word.strength = Math.max(0, Math.min(5, (word.strength || 0) + (correct ? 1 : -1)));
+    state.profile.xp = (state.profile.xp || 0) + xpDelta;
+    state.profile.completedToday = (state.profile.completedToday || 0) + 1;
+    state.currentQuest.progress = Math.min(100, (state.currentQuest.progress || 0) + (correct ? 4 : 1));
+    await writeState(state);
+    sendJson(res, 200, {
+      correct,
+      expected: word.article,
+      xpDelta,
+      profile: state.profile,
+      word,
+      currentQuest: state.currentQuest
+    });
     return;
   }
 
@@ -234,18 +466,32 @@ async function handleApi(req, res, url) {
 
   if (req.method === "PATCH" && url.pathname === "/api/profile") {
     const body = await readBody(req);
-    if (typeof body.level === "string") {
-      state.profile.level = body.level.slice(0, 4);
-    }
-    if (typeof body.name === "string" && body.name.trim()) {
-      state.profile.name = body.name.trim().slice(0, 40);
-    }
+    if (typeof body.level === "string") state.profile.level = body.level.slice(0, 4);
+    if (typeof body.name === "string" && body.name.trim()) state.profile.name = body.name.trim().slice(0, 40);
     await writeState(state);
     sendJson(res, 200, state.profile);
     return;
   }
 
   sendJson(res, 404, { error: "API route not found." });
+}
+
+function prepareSession(state, body) {
+  const mode = String(body.mode || "tutor");
+  const sessionId = String(body.sessionId || state.sessions[0]?.id || crypto.randomUUID());
+  let session = state.sessions.find(item => item.id === sessionId);
+  if (!session) {
+    session = {
+      id: sessionId,
+      mode,
+      title: mode === "roleplay" ? "Roleplay" : "Tutor chat",
+      createdAt: new Date().toISOString(),
+      messages: []
+    };
+    state.sessions.unshift(session);
+  }
+  session.mode = mode;
+  return { session };
 }
 
 async function serveStatic(req, res, url) {
@@ -278,6 +524,15 @@ async function serveStatic(req, res, url) {
 
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host || "localhost"}`);
+  if (BASE_PATH && url.pathname === BASE_PATH) {
+    res.writeHead(308, { Location: `${BASE_PATH}/` });
+    res.end();
+    return;
+  }
+  if (BASE_PATH && url.pathname.startsWith(`${BASE_PATH}/`)) {
+    url.pathname = url.pathname.slice(BASE_PATH.length) || "/";
+  }
+
   try {
     if (url.pathname.startsWith("/api/")) {
       await handleApi(req, res, url);
@@ -290,5 +545,5 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => {
-  console.log(`DeutschQuest running at http://localhost:${PORT}`);
+  console.log(`DeutschQuest running at http://localhost:${PORT}${BASE_PATH || ""}`);
 });

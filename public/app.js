@@ -1,13 +1,24 @@
+const AUTH_KEY = "deutschquest_token";
+
 const state = {
-  profile: { name: "Mario", level: "A2", streak: 0, xp: 0 },
+  token: localStorage.getItem(AUTH_KEY) || "",
+  authRequired: false,
+  profile: { name: "Mario", level: "A2", streak: 0, xp: 0, completedToday: 0 },
   currentQuest: {},
   words: [],
+  scenarios: [],
   sessions: [],
   sessionId: null,
-  drillIndex: 0
+  drillIndex: 0,
+  roleplayPrompt: ""
 };
 
 const els = {
+  app: document.querySelector(".app"),
+  loginView: document.querySelector("#loginView"),
+  loginForm: document.querySelector("#loginForm"),
+  passwordInput: document.querySelector("#passwordInput"),
+  loginError: document.querySelector("#loginError"),
   greeting: document.querySelector("#greeting"),
   xp: document.querySelector("#xp"),
   streak: document.querySelector("#streak"),
@@ -16,6 +27,8 @@ const els = {
   questTitle: document.querySelector("#questTitle"),
   questScenario: document.querySelector("#questScenario"),
   questProgress: document.querySelector("#questProgress"),
+  goalProgress: document.querySelector("#goalProgress"),
+  scenarioList: document.querySelector("#scenarioList"),
   chatPanel: document.querySelector("#chatPanel"),
   chatForm: document.querySelector("#chatForm"),
   chatInput: document.querySelector("#chatInput"),
@@ -29,19 +42,45 @@ const els = {
   toolOutput: document.querySelector("#toolOutput")
 };
 
+function authHeaders() {
+  return state.token ? { Authorization: `Bearer ${state.token}` } : {};
+}
+
 async function api(path, options = {}) {
   const response = await fetch(path, {
     headers: {
       "Content-Type": "application/json",
+      ...authHeaders(),
       ...(options.headers || {})
     },
     ...options
   });
-    const payload = await response.json();
-  if (!response.ok) {
-    throw new Error(payload.error || "Request failed.");
+  const payload = response.status === 204 ? {} : await response.json();
+  if (response.status === 401) {
+    localStorage.removeItem(AUTH_KEY);
+    state.token = "";
+    showLogin(payload.error || "App password required.");
+    throw new Error(payload.error || "App password required.");
   }
+  if (!response.ok) throw new Error(payload.error || "Request failed.");
   return payload;
+}
+
+function showLogin(message = "") {
+  if (!els.loginView) return;
+  els.loginView.hidden = false;
+  els.loginError.textContent = message;
+  els.passwordInput.focus();
+}
+
+function hideLogin() {
+  if (!els.loginView) return;
+  els.loginView.hidden = true;
+  els.loginError.textContent = "";
+}
+
+function setLoaded() {
+  els.app.classList.remove("loading");
 }
 
 function switchView(id) {
@@ -63,36 +102,50 @@ function renderHome() {
   els.questTitle.textContent = state.currentQuest.title || "Daily German quest";
   els.questScenario.textContent = state.currentQuest.scenario || "Practice one useful conversation today.";
   els.questProgress.style.width = `${state.currentQuest.progress || 0}%`;
+  els.goalProgress.textContent = `${state.profile.completedToday || 0}/${state.profile.dailyGoal || 15} reps`;
+}
+
+function renderScenarios() {
+  els.scenarioList.replaceChildren(
+    ...state.scenarios.map(scenario => {
+      const button = document.createElement("button");
+      button.className = "scenario-card";
+      button.type = "button";
+      button.innerHTML = `<strong>${scenario.title}</strong><span>${scenario.place}</span><small>${scenario.goal}</small>`;
+      button.addEventListener("click", () => chooseScenario(scenario.id));
+      return button;
+    })
+  );
 }
 
 function renderChat() {
   const session = state.sessions.find(item => item.id === state.sessionId) || state.sessions[0];
   const messages = session?.messages || [];
-
   if (!messages.length) {
-    els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was moechtest du heute auf Deutsch ueben?</div>`;
+    els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was möchtest du heute auf Deutsch üben?</div>`;
     return;
   }
-
   els.chatPanel.replaceChildren(
-    ...messages.map(message => {
-      const bubble = document.createElement("div");
-      bubble.className = `bubble ${message.role === "user" ? "user" : "assistant"}`;
-      bubble.textContent = message.content;
-      return bubble;
-    })
+    ...messages.map(message => createBubble(message.role, message.content))
   );
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
 }
 
-function renderDrills() {
-  if (!state.words.length) {
-    els.drillWord.textContent = "Kaffee";
-    return;
-  }
-  const word = state.words[state.drillIndex % state.words.length];
-  els.drillWord.textContent = word.german.replace(/^(der|die|das)\s+/i, "");
+function createBubble(role, content = "") {
+  const bubble = document.createElement("div");
+  bubble.className = `bubble ${role === "user" ? "user" : "assistant"}`;
+  bubble.textContent = content;
+  return bubble;
+}
 
+function currentDrillWord() {
+  const drillWords = state.words.filter(word => word.article);
+  return drillWords[state.drillIndex % Math.max(1, drillWords.length)] || null;
+}
+
+function renderDrills() {
+  const word = currentDrillWord();
+  els.drillWord.textContent = word ? word.german.replace(/^(der|die|das)\s+/i, "") : "Kaffee";
   els.wordList.replaceChildren(
     ...state.words.map(wordItem => {
       const row = document.createElement("article");
@@ -105,41 +158,106 @@ function renderDrills() {
 
 function render() {
   renderHome();
+  renderScenarios();
   renderChat();
   renderDrills();
 }
 
+async function loadConfig() {
+  const config = await api("api/config", { headers: {} });
+  state.authRequired = config.authRequired;
+  if (state.authRequired && !state.token) {
+    showLogin();
+    return false;
+  }
+  return true;
+}
+
 async function loadApp() {
+  const ready = await loadConfig();
+  if (!ready) return;
   const data = await api("api/app");
+  hideLogin();
   state.profile = data.profile;
   state.currentQuest = data.currentQuest;
   state.words = data.words || [];
+  state.scenarios = data.scenarios || [];
   state.sessions = data.sessions || [];
   state.sessionId = state.sessions[0]?.id || null;
+  state.roleplayPrompt = state.scenarios[0]?.prompt || "";
   els.modelBadge.textContent = data.ollama?.model || "Ollama";
   render();
+  setLoaded();
+}
+
+async function chooseScenario(id) {
+  const result = await api("api/scenario", {
+    method: "POST",
+    body: JSON.stringify({ id })
+  });
+  state.currentQuest = result.currentQuest;
+  state.roleplayPrompt = result.scenario.prompt;
+  renderHome();
+  switchView("roleplayView");
+}
+
+function updateSessionMessages(sessionId, messages, mode = "tutor") {
+  state.sessionId = sessionId;
+  const session = state.sessions.find(item => item.id === sessionId);
+  if (session) {
+    session.messages = messages;
+  } else {
+    state.sessions.unshift({ id: sessionId, mode, title: "Tutor chat", messages });
+  }
 }
 
 async function sendChat(message, mode = "tutor") {
-  const pending = document.createElement("div");
-  pending.className = "bubble assistant";
-  pending.textContent = "Denke nach...";
+  const pending = createBubble("assistant", "");
   els.chatPanel.append(pending);
   els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
 
-  const result = await api("api/chat", {
+  const response = await fetch("api/chat/stream", {
     method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders()
+    },
     body: JSON.stringify({ sessionId: state.sessionId, message, mode })
   });
 
-  state.sessionId = result.sessionId;
-  const session = state.sessions.find(item => item.id === result.sessionId);
-  if (session) {
-    session.messages = result.messages;
-  } else {
-    state.sessions.unshift({ id: result.sessionId, mode, title: "Tutor chat", messages: result.messages });
+  if (response.status === 401) {
+    showLogin("App password required.");
+    return;
   }
-  renderChat();
+  if (!response.ok || !response.body) {
+    pending.textContent = "The tutor could not respond.";
+    return;
+  }
+
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for await (const chunk of response.body) {
+    buffer += decoder.decode(chunk, { stream: true });
+    const events = buffer.split("\n\n");
+    buffer = events.pop() || "";
+    for (const rawEvent of events) {
+      const lines = rawEvent.split("\n");
+      const event = lines.find(line => line.startsWith("event:"))?.slice(6).trim();
+      const dataLine = lines.find(line => line.startsWith("data:"));
+      const data = dataLine ? JSON.parse(dataLine.slice(5)) : {};
+      if (event === "chunk") {
+        pending.textContent += data.chunk || "";
+        els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
+      }
+      if (event === "done") {
+        updateSessionMessages(data.sessionId, data.messages, mode);
+        renderChat();
+      }
+      if (event === "error") {
+        pending.textContent = data.error || "Streaming failed.";
+      }
+    }
+  }
 }
 
 document.querySelectorAll(".tab").forEach(tab => {
@@ -150,38 +268,53 @@ document.querySelectorAll("[data-jump]").forEach(button => {
   button.addEventListener("click", () => switchView(button.dataset.jump));
 });
 
+els.loginForm.addEventListener("submit", async event => {
+  event.preventDefault();
+  els.loginError.textContent = "";
+  try {
+    const result = await api("api/login", {
+      method: "POST",
+      body: JSON.stringify({ password: els.passwordInput.value })
+    });
+    state.token = result.token;
+    localStorage.setItem(AUTH_KEY, result.token);
+    els.passwordInput.value = "";
+    await loadApp();
+  } catch (error) {
+    els.loginError.textContent = error.message;
+  }
+});
+
 els.chatForm.addEventListener("submit", async event => {
   event.preventDefault();
   const message = els.chatInput.value.trim();
   if (!message) return;
   els.chatInput.value = "";
   const session = state.sessions.find(item => item.id === state.sessionId);
-  if (session) {
-    session.messages.push({ role: "user", content: message });
-  }
+  if (session) session.messages.push({ role: "user", content: message });
   renderChat();
-  try {
-    await sendChat(message, "tutor");
-  } catch (error) {
-    els.chatPanel.append(Object.assign(document.createElement("div"), {
-      className: "bubble assistant",
-      textContent: error.message
-    }));
-  }
+  await sendChat(message, "tutor");
 });
 
 els.beginRoleplay.addEventListener("click", async () => {
   switchView("chatView");
-  await sendChat("Start the bakery roleplay. You are the shopkeeper. Greet me in simple German.", "roleplay");
+  await sendChat(state.roleplayPrompt || "Start the roleplay in simple German.", "roleplay");
 });
 
 document.querySelectorAll("[data-article]").forEach(button => {
-  button.addEventListener("click", () => {
-    const word = state.words[state.drillIndex % state.words.length];
+  button.addEventListener("click", async () => {
+    const word = currentDrillWord();
     if (!word) return;
-    const correct = button.dataset.article === word.article;
-    els.drillFeedback.textContent = correct ? "Richtig! +10 XP" : `Fast. Correct: ${word.article}`;
+    const result = await api("api/drills/answer", {
+      method: "POST",
+      body: JSON.stringify({ wordId: word.id, answer: button.dataset.article })
+    });
+    state.profile = result.profile;
+    state.currentQuest = result.currentQuest;
+    state.words = state.words.map(item => item.id === result.word.id ? result.word : item);
+    els.drillFeedback.textContent = result.correct ? `Richtig! +${result.xpDelta} XP` : `Fast. Correct: ${result.expected}`;
     state.drillIndex += 1;
+    renderHome();
     setTimeout(renderDrills, 700);
   });
 });
@@ -203,9 +336,10 @@ els.toolForm.addEventListener("submit", async event => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614"));
+  window.addEventListener("load", () => navigator.serviceWorker.register("service-worker.js?v=20260614b"));
 }
 
 loadApp().catch(error => {
-  document.body.innerHTML = `<main class="app"><h1>DeutschQuest</h1><p>${error.message}</p></main>`;
+  setLoaded();
+  if (!state.authRequired) document.body.innerHTML = `<main class="app"><h1>DeutschQuest</h1><p>${error.message}</p></main>`;
 });

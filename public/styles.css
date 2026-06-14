@@ -28,6 +28,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+body:has(.auth-screen:not([hidden])) {
+  overflow: hidden;
+}
+
 button, input, textarea, select {
   font: inherit;
 }
@@ -45,6 +49,45 @@ button {
   min-height: 100svh;
   margin: 0 auto;
   padding: max(18px, env(safe-area-inset-top)) 16px calc(92px + env(safe-area-inset-bottom));
+}
+
+.auth-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background:
+    radial-gradient(circle at 15% 5%, rgba(255, 200, 87, 0.55), transparent 15rem),
+    linear-gradient(155deg, #fff7e6, #ffe0d4 48%, #dcf7f1);
+}
+
+.auth-screen[hidden] {
+  display: none;
+}
+
+.auth-card {
+  display: grid;
+  gap: 12px;
+  width: min(100%, 390px);
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 22px 70px rgba(80, 46, 26, 0.2);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.auth-card p {
+  margin-bottom: 0;
+}
+
+#loginError {
+  min-height: 20px;
+  color: #be123c;
+  font-size: 0.86rem;
 }
 
 .topbar {
@@ -120,6 +163,28 @@ p {
   -webkit-backdrop-filter: blur(14px);
 }
 
+.loading .quest-hero,
+.loading .mode-card,
+.loading .quest-row {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading .quest-hero::after,
+.loading .mode-card::after,
+.loading .quest-row::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
 .quest-copy h2,
 .mission-card h2,
 .drill-card h2 {
@@ -129,6 +194,13 @@ p {
 .progress-wrap {
   display: grid;
   gap: 8px;
+}
+
+.quest-stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.86rem;
 }
 
 .progress {
@@ -217,6 +289,41 @@ p {
   justify-content: space-between;
   gap: 14px;
   margin: 22px 0 10px;
+}
+
+.scenario-list {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(210px, 76%);
+  gap: 10px;
+  overflow-x: auto;
+  padding: 0 0 10px;
+  scroll-snap-type: x mandatory;
+}
+
+.scenario-card {
+  display: grid;
+  gap: 6px;
+  min-height: 126px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.78), rgba(255, 247, 230, 0.72));
+  color: var(--ink);
+  text-align: left;
+  scroll-snap-align: start;
+}
+
+.scenario-card span {
+  color: var(--orange);
+  font-size: 0.78rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.scenario-card small {
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .quest-list,
@@ -374,7 +481,7 @@ select {
 
 .tab {
   display: grid;
-  min-height: 58px;
+  min-height: 54px;
   place-items: center;
   gap: 3px;
   border-radius: 12px;

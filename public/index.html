@@ -5,11 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
-    <link rel="manifest" href="manifest.webmanifest?v=20260614">
-    <link rel="stylesheet" href="styles.css?v=20260614">
+    <link rel="manifest" href="manifest.webmanifest?v=20260614b">
+    <link rel="stylesheet" href="styles.css?v=20260614b">
   </head>
   <body>
-    <div class="app">
+    <div class="auth-screen" id="loginView" hidden>
+      <form class="auth-card" id="loginForm">
+        <p class="eyebrow">DeutschQuest</p>
+        <h1>App password</h1>
+        <p>Enter the password from your server `.env` file.</p>
+        <input id="passwordInput" type="password" autocomplete="current-password" placeholder="Password">
+        <button class="primary">Unlock</button>
+        <strong id="loginError"></strong>
+      </form>
+    </div>
+
+    <div class="app loading">
       <header class="topbar">
         <div>
           <p class="eyebrow">DeutschQuest</p>
@@ -28,7 +39,10 @@
             </div>
             <div class="progress-wrap">
               <div class="progress"><span id="questProgress"></span></div>
-              <strong id="streak">0 day streak</strong>
+              <div class="quest-stats">
+                <strong id="streak">0 day streak</strong>
+                <strong id="goalProgress">0/15 reps</strong>
+              </div>
             </div>
             <button class="primary" data-jump="roleplayView">Start Practice</button>
           </div>
@@ -50,10 +64,11 @@
             <h2>Today</h2>
             <span id="levelBadge">A2</span>
           </div>
+          <div class="scenario-list" id="scenarioList"></div>
           <div class="quest-list">
             <article class="quest-row">
               <span class="coin">1</span>
-              <div><h3>Article warmup</h3><p>der Kaffee, die Milch, das Broetchen</p></div>
+              <div><h3>Article warmup</h3><p>der Kaffee, die Milch, das Brötchen</p></div>
               <strong>3m</strong>
             </article>
             <article class="quest-row">
@@ -90,7 +105,7 @@
           </div>
           <div class="quest-list">
             <article class="quest-row"><span class="coin">1</span><div><h3>Ask what is fresh</h3><p>Was ist heute frisch?</p></div><strong>new</strong></article>
-            <article class="quest-row"><span class="coin">2</span><div><h3>Order politely</h3><p>Ich haette gern zwei Broetchen.</p></div><strong>A2</strong></article>
+            <article class="quest-row"><span class="coin">2</span><div><h3>Order politely</h3><p>Ich hätte gern zwei Brötchen.</p></div><strong>A2</strong></article>
             <article class="quest-row"><span class="coin">3</span><div><h3>Add a coffee</h3><p>Use "einen Kaffee" correctly.</p></div><strong>fix</strong></article>
           </div>
         </section>
@@ -141,6 +156,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="app.js?v=20260614" defer></script>
+    <script src="app.js?v=20260614b" defer></script>
   </body>
 </html>
