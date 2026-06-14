@@ -1,10 +1,10 @@
-const CACHE_NAME = "deutschquest-v19";
+const CACHE_NAME = "deutschquest-v20";
 const APP_SHELL = [
   "./",
   "index.html",
-  "styles.css?v=20260614r",
-  "app.js?v=20260614r",
-  "manifest.webmanifest?v=20260614r",
+  "styles.css?v=20260614s",
+  "app.js?v=20260614s",
+  "manifest.webmanifest?v=20260614s",
   "icon.svg"
 ];
 

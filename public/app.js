@@ -58,6 +58,7 @@ const els = {
   continueChatButton: document.querySelector("#continueChatButton"),
   lessonTopicInput: document.querySelector("#lessonTopicInput"),
   generateLessonButton: document.querySelector("#generateLessonButton"),
+  lessonCoachButton: document.querySelector("#lessonCoachButton"),
   logoutButton: document.querySelector("#logoutButton"),
   lessonCard: document.querySelector("#lessonCard"),
   lessonTitle: document.querySelector("#lessonTitle"),
@@ -707,6 +708,19 @@ els.generateLessonButton.addEventListener("click", async () => {
   }
 });
 
+els.lessonCoachButton.addEventListener("click", async () => {
+  const topic = els.lessonTopicInput.value.trim() || "German from zero";
+  const result = await api("api/chat/new", {
+    method: "POST",
+    body: JSON.stringify({ mode: "lesson", title: `Lesson Coach: ${topic}` })
+  });
+  state.sessions.unshift(result.session);
+  state.sessionId = result.session.id;
+  renderChat();
+  switchView("chatView");
+  await sendChat(`Teach me a beginner-friendly lesson about ${topic}. Start by defining the words I need first, then give me one tiny practice turn.`, "lesson");
+});
+
 function renderLesson(lesson) {
   state.activeLessonId = lesson.id || null;
   state.activeLesson = lesson;
@@ -783,7 +797,7 @@ els.practiceLessonButton?.addEventListener("click", async () => {
   if (!lesson) return;
   const result = await api("api/chat/new", {
     method: "POST",
-    body: JSON.stringify({ mode: "tutor", title: `Lesson: ${lesson.title || "Practice"}` })
+    body: JSON.stringify({ mode: "lesson", title: `Lesson: ${lesson.title || "Practice"}` })
   });
   state.sessions.unshift(result.session);
   state.sessionId = result.session.id;
@@ -801,7 +815,7 @@ els.practiceLessonButton?.addEventListener("click", async () => {
   if (session) session.messages.push({ role: "user", content: prompt });
   renderChat();
   switchView("chatView");
-  await sendChat(prompt, "tutor");
+  await sendChat(prompt, "lesson");
 });
 
 els.checkLessonDrillButton?.addEventListener("click", async () => {
@@ -1227,7 +1241,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614r`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614s`));
 }
 
 loadApp().catch(error => {

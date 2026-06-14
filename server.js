@@ -452,7 +452,7 @@ function readBody(req) {
 }
 
 function systemPrompt(level, mode) {
-  return [
+  const base = [
     "You are DeutschQuest, a friendly German tutor in a mobile learning game.",
     `The learner level is ${level || "A2"}. Keep German appropriate for that level.`,
     "Use German for roleplay and examples, with brief English explanations when correcting.",
@@ -460,7 +460,16 @@ function systemPrompt(level, mode) {
     "For roleplay, stay in character and keep the conversation moving.",
     "Avoid long lectures. Give one small next step.",
     `Current mode: ${mode || "tutor"}.`
-  ].join("\n");
+  ];
+  if (mode === "lesson") {
+    base.push(
+      "You are acting as the dedicated Lesson Coach agent.",
+      "Focus only on teaching structured lessons, prerequisites, examples, tiny drills, and checking understanding.",
+      "Assume the learner may be brand new. Define every important word before using it heavily.",
+      "Teach in small chunks: concept, example, learner turn. Do not drift into open-ended chat."
+    );
+  }
+  return base.join("\n");
 }
 
 async function askOllama(messages, level, mode) {
@@ -636,11 +645,13 @@ async function handleApi(req, res, url) {
     const topic = String(body.topic || state.currentQuest.title || "daily German practice").trim();
     const prompt = [
       `Create a compact ${state.profile.level} German lesson for: ${topic}.`,
+      "Assume the learner may be newer than the level says. Do not assume vocabulary knowledge.",
       "Return strict JSON only with keys: title, goal, warmup, dialogue, vocabulary, drill.",
-      "warmup is one short instruction string.",
+      "warmup is one short instruction string that starts from zero.",
       "dialogue is an array of 4 short German lines.",
-      "vocabulary is an array of 4 objects with german and english.",
-      "drill is an object with prompt and answer."
+      "vocabulary is an array of 4 objects with german, english, and optional note for implied meaning.",
+      "drill is an object with prompt and answer.",
+      "Prefer common everyday words and explain particles or implied meanings when present."
     ].join("\n");
     const raw = await askOllama([{ role: "user", content: prompt }], state.profile.level, "tool");
     const json = raw.match(/\{[\s\S]*\}/)?.[0] || "";
