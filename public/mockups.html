@@ -1,0 +1,570 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>DeutschQuest Mockups</title>
+    <style>
+      :root {
+        --ink: #17211f;
+        --muted: #66706d;
+        --paper: #fbfaf6;
+        --line: #ddd7cb;
+        --teal: #0f766e;
+        --gold: #d6a21d;
+        --rose: #be123c;
+        --blue: #2563eb;
+        --dark: #16201d;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background:
+          linear-gradient(120deg, rgba(15, 118, 110, 0.12), transparent 34rem),
+          linear-gradient(180deg, #fffdfa, #eee8db);
+        color: var(--ink);
+      }
+
+      .page {
+        max-width: 1220px;
+        margin: 0 auto;
+        padding: 32px 18px 48px;
+      }
+
+      .intro {
+        display: grid;
+        gap: 12px;
+        max-width: 760px;
+        margin-bottom: 26px;
+      }
+
+      .intro p,
+      .label,
+      .muted {
+        color: var(--muted);
+      }
+
+      h1,
+      h2,
+      h3,
+      p {
+        margin-top: 0;
+      }
+
+      h1 {
+        margin-bottom: 0;
+        font-size: clamp(2rem, 6vw, 4.2rem);
+        line-height: 0.96;
+        letter-spacing: 0;
+      }
+
+      .intro p {
+        margin-bottom: 0;
+        font-size: 1.02rem;
+        line-height: 1.6;
+      }
+
+      .mock-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+        gap: 20px;
+        align-items: start;
+      }
+
+      .phone {
+        overflow: hidden;
+        min-height: 690px;
+        border: 10px solid #111715;
+        border-radius: 34px;
+        background: var(--paper);
+        box-shadow: 0 24px 70px rgba(25, 30, 26, 0.22);
+      }
+
+      .screen {
+        min-height: 670px;
+        padding: 18px 16px 82px;
+        position: relative;
+      }
+
+      .screen.dark {
+        background: #111715;
+        color: #f8faf7;
+      }
+
+      .top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 16px;
+      }
+
+      .brand {
+        font-weight: 900;
+      }
+
+      .pill {
+        display: inline-flex;
+        align-items: center;
+        min-height: 30px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: rgba(15, 118, 110, 0.12);
+        color: var(--teal);
+        font-size: 0.78rem;
+        font-weight: 850;
+      }
+
+      .screen.dark .pill {
+        background: rgba(214, 162, 29, 0.16);
+        color: #f7d36e;
+      }
+
+      .hero {
+        display: grid;
+        gap: 16px;
+        padding: 18px;
+        border-radius: 8px;
+        background: #ffffff;
+        border: 1px solid var(--line);
+      }
+
+      .screen.dark .hero,
+      .screen.dark .panel,
+      .screen.dark .row,
+      .screen.dark .tool {
+        background: #1d2724;
+        border-color: #34423e;
+      }
+
+      .hero h2 {
+        margin-bottom: 0;
+        font-size: 1.65rem;
+        line-height: 1.08;
+      }
+
+      .progress {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e7e1d6;
+      }
+
+      .progress span {
+        display: block;
+        width: 62%;
+        height: 100%;
+        background: linear-gradient(90deg, var(--teal), var(--gold));
+      }
+
+      .quest-map {
+        display: grid;
+        gap: 12px;
+        margin-top: 16px;
+      }
+
+      .quest {
+        display: grid;
+        grid-template-columns: 42px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        min-height: 68px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .badge {
+        display: grid;
+        width: 42px;
+        height: 42px;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-weight: 950;
+      }
+
+      .quest h3,
+      .row h3,
+      .tool h3,
+      .panel h3 {
+        margin-bottom: 3px;
+        font-size: 0.98rem;
+      }
+
+      .quest p,
+      .row p,
+      .tool p,
+      .panel p {
+        margin-bottom: 0;
+        color: var(--muted);
+        font-size: 0.82rem;
+        line-height: 1.35;
+      }
+
+      .screen.dark .row p,
+      .screen.dark .tool p,
+      .screen.dark .panel p {
+        color: #a7b5af;
+      }
+
+      .chat {
+        display: grid;
+        gap: 12px;
+        margin-top: 18px;
+      }
+
+      .bubble {
+        max-width: 86%;
+        padding: 12px;
+        border-radius: 16px;
+        line-height: 1.42;
+        font-size: 0.93rem;
+      }
+
+      .bubble.ai {
+        border-bottom-left-radius: 5px;
+        background: #eef5f3;
+      }
+
+      .bubble.user {
+        justify-self: end;
+        border-bottom-right-radius: 5px;
+        background: var(--teal);
+        color: #fff;
+      }
+
+      .correction {
+        display: grid;
+        gap: 8px;
+        margin-top: 16px;
+        padding: 14px;
+        border: 1px solid #b9dfd8;
+        border-radius: 8px;
+        background: #f0fbf8;
+      }
+
+      .correction strong {
+        color: var(--teal);
+      }
+
+      .inputbar {
+        position: absolute;
+        right: 16px;
+        bottom: 18px;
+        left: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 46px;
+        gap: 8px;
+      }
+
+      .inputbar div {
+        min-height: 46px;
+        padding: 12px;
+        border-radius: 999px;
+        background: #fff;
+        color: var(--muted);
+        border: 1px solid var(--line);
+      }
+
+      .inputbar button,
+      .primary {
+        min-height: 46px;
+        border: 0;
+        border-radius: 999px;
+        background: var(--teal);
+        color: #fff;
+        font-weight: 900;
+      }
+
+      .mission {
+        display: grid;
+        gap: 14px;
+        padding: 18px;
+        border-radius: 8px;
+        background: linear-gradient(145deg, #23312d, #131b18);
+        border: 1px solid #34423e;
+      }
+
+      .mission h2 {
+        margin-bottom: 0;
+        font-size: 1.55rem;
+        line-height: 1.08;
+      }
+
+      .objective {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .row,
+      .panel,
+      .tool {
+        padding: 13px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #fff;
+      }
+
+      .row {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        gap: 10px;
+        align-items: start;
+      }
+
+      .check {
+        display: grid;
+        width: 28px;
+        height: 28px;
+        place-items: center;
+        border-radius: 999px;
+        background: var(--gold);
+        color: #15130d;
+        font-weight: 950;
+      }
+
+      .tool-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 16px;
+      }
+
+      .tool {
+        min-height: 116px;
+      }
+
+      .tool-icon {
+        display: grid;
+        width: 38px;
+        height: 38px;
+        place-items: center;
+        margin-bottom: 12px;
+        border-radius: 8px;
+        background: rgba(37, 99, 235, 0.12);
+        color: var(--blue);
+        font-weight: 950;
+      }
+
+      .mini-tabs {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+        margin: 16px 0;
+      }
+
+      .mini-tabs span {
+        display: grid;
+        min-height: 34px;
+        place-items: center;
+        border-radius: 999px;
+        background: #ebe4d8;
+        color: var(--muted);
+        font-size: 0.75rem;
+        font-weight: 850;
+      }
+
+      .mini-tabs span.active {
+        background: var(--dark);
+        color: #fff;
+      }
+
+      .screen.dark .mini-tabs span {
+        background: #25312e;
+      }
+
+      .screen.dark .mini-tabs span.active {
+        background: #f7d36e;
+        color: #14130f;
+      }
+
+      @media (max-width: 680px) {
+        .page {
+          padding: 22px 12px 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <section class="intro">
+        <p class="label">DeutschQuest mock design</p>
+        <h1>AI German practice that feels like a small game.</h1>
+        <p>Four draft mobile screens: daily quest map, tutor chat, roleplay mission, and AI tools. These are visual mockups only.</p>
+      </section>
+
+      <section class="mock-grid" aria-label="DeutschQuest mobile mockups">
+        <article class="phone">
+          <div class="screen">
+            <div class="top">
+              <div class="brand">DeutschQuest</div>
+              <span class="pill">A2 · Day 8</span>
+            </div>
+
+            <div class="hero">
+              <div>
+                <p class="label">Daily quest</p>
+                <h2>Order breakfast in Berlin.</h2>
+              </div>
+              <div class="progress"><span></span></div>
+              <button class="primary">Start 7 min practice</button>
+            </div>
+
+            <div class="mini-tabs">
+              <span class="active">Today</span>
+              <span>Words</span>
+              <span>Drills</span>
+              <span>Stats</span>
+            </div>
+
+            <div class="quest-map">
+              <div class="quest">
+                <div class="badge">1</div>
+                <div>
+                  <h3>Warmup</h3>
+                  <p>Pick the correct articles for bakery words.</p>
+                </div>
+                <strong>3m</strong>
+              </div>
+              <div class="quest">
+                <div class="badge">2</div>
+                <div>
+                  <h3>Roleplay</h3>
+                  <p>Ask what is fresh and buy two rolls.</p>
+                </div>
+                <strong>7m</strong>
+              </div>
+              <div class="quest">
+                <div class="badge">3</div>
+                <div>
+                  <h3>Review</h3>
+                  <p>Save new words and correct one sentence.</p>
+                </div>
+                <strong>4m</strong>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="top">
+              <div class="brand">Tutor Chat</div>
+              <span class="pill">llama3.1:8b</span>
+            </div>
+
+            <div class="panel">
+              <h3>Mode</h3>
+              <p>Gentle correction · A2 vocabulary · English explanations</p>
+            </div>
+
+            <div class="chat">
+              <div class="bubble ai">Guten Morgen. Was moechtest du beim Baecker bestellen?</div>
+              <div class="bubble user">Ich moechte zwei Brotchen und ein Kaffee, bitte.</div>
+              <div class="bubble ai">Sehr gut. Kleine Korrektur: <strong>einen Kaffee</strong>, because Kaffee is masculine.</div>
+            </div>
+
+            <div class="correction">
+              <strong>Natural version</strong>
+              <span>Ich haette gern zwei Broetchen und einen Kaffee, bitte.</span>
+            </div>
+
+            <div class="inputbar">
+              <div>Reply in German...</div>
+              <button>➤</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen dark">
+            <div class="top">
+              <div class="brand">Roleplay</div>
+              <span class="pill">Mission</span>
+            </div>
+
+            <div class="mission">
+              <p class="label">Scenario</p>
+              <h2>You are at a train station in Munich.</h2>
+              <p class="muted">Buy a ticket, ask which platform, and confirm the departure time.</p>
+              <button class="primary">Begin conversation</button>
+            </div>
+
+            <div class="objective">
+              <div class="row">
+                <div class="check">1</div>
+                <div>
+                  <h3>Ask for a ticket</h3>
+                  <p>Use “Ich moechte...” or “Ich haette gern...”</p>
+                </div>
+              </div>
+              <div class="row">
+                <div class="check">2</div>
+                <div>
+                  <h3>Find the platform</h3>
+                  <p>Practice “Von welchem Gleis faehrt der Zug?”</p>
+                </div>
+              </div>
+              <div class="row">
+                <div class="check">3</div>
+                <div>
+                  <h3>Confirm the time</h3>
+                  <p>Repeat the answer back naturally.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article class="phone">
+          <div class="screen">
+            <div class="top">
+              <div class="brand">AI Tools</div>
+              <span class="pill">Local</span>
+            </div>
+
+            <div class="hero">
+              <div>
+                <p class="label">Ask the tutor</p>
+                <h2>Turn anything into practice.</h2>
+              </div>
+              <p class="muted">Paste text, a phrase, or a topic. Ollama generates drills on your server.</p>
+            </div>
+
+            <div class="tool-grid">
+              <div class="tool">
+                <div class="tool-icon">Aa</div>
+                <h3>Explain grammar</h3>
+                <p>Short examples at your level.</p>
+              </div>
+              <div class="tool">
+                <div class="tool-icon">⇄</div>
+                <h3>Translate</h3>
+                <p>Literal, natural, and formal.</p>
+              </div>
+              <div class="tool">
+                <div class="tool-icon">?</div>
+                <h3>Quiz me</h3>
+                <p>Create a fast custom drill.</p>
+              </div>
+              <div class="tool">
+                <div class="tool-icon">B1</div>
+                <h3>Simplify text</h3>
+                <p>Rewrite for A1, A2, or B1.</p>
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

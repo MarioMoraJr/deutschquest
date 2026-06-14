@@ -1,0 +1,13 @@
+{
+  "name": "deutschquest",
+  "version": "1.0.0",
+  "private": false,
+  "description": "Mobile-first German learning app with local Ollama tutoring.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

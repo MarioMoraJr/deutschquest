@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#ff6b35">
+    <title>DeutschQuest</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">DeutschQuest</p>
+          <h1 id="greeting">Guten Morgen</h1>
+        </div>
+        <div class="xp-pill"><span id="xp">0</span> XP</div>
+      </header>
+
+      <main>
+        <section class="view active" id="homeView">
+          <div class="quest-hero">
+            <div class="quest-copy">
+              <p class="eyebrow">Daily Quest</p>
+              <h2 id="questTitle">Loading quest</h2>
+              <p id="questScenario">Preparing your lesson.</p>
+            </div>
+            <div class="progress-wrap">
+              <div class="progress"><span id="questProgress"></span></div>
+              <strong id="streak">0 day streak</strong>
+            </div>
+            <button class="primary" data-jump="roleplayView">Start Practice</button>
+          </div>
+
+          <div class="mode-grid">
+            <button class="mode-card" data-jump="chatView">
+              <span class="mode-icon">Aa</span>
+              <strong>Tutor Chat</strong>
+              <small>Talk, get corrections, save words.</small>
+            </button>
+            <button class="mode-card candy" data-jump="drillsView">
+              <span class="mode-icon">⚡</span>
+              <strong>Arcade Drills</strong>
+              <small>Fast article and word-order rounds.</small>
+            </button>
+          </div>
+
+          <div class="section-head">
+            <h2>Today</h2>
+            <span id="levelBadge">A2</span>
+          </div>
+          <div class="quest-list">
+            <article class="quest-row">
+              <span class="coin">1</span>
+              <div><h3>Article warmup</h3><p>der Kaffee, die Milch, das Broetchen</p></div>
+              <strong>3m</strong>
+            </article>
+            <article class="quest-row">
+              <span class="coin">2</span>
+              <div><h3>Bakery roleplay</h3><p>Buy rolls and ask what is fresh.</p></div>
+              <strong>7m</strong>
+            </article>
+            <article class="quest-row">
+              <span class="coin">3</span>
+              <div><h3>Review words</h3><p>Turn mistakes into flashcards.</p></div>
+              <strong>4m</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="chatView">
+          <div class="section-head">
+            <h2>Tutor Chat</h2>
+            <span id="modelBadge">Ollama</span>
+          </div>
+          <div class="chat-panel" id="chatPanel"></div>
+          <form class="composer" id="chatForm">
+            <input id="chatInput" autocomplete="off" placeholder="Reply in German...">
+            <button aria-label="Send message">➤</button>
+          </form>
+        </section>
+
+        <section class="view" id="roleplayView">
+          <div class="mission-card">
+            <p class="eyebrow">Roleplay Mission</p>
+            <h2>Bakery in Berlin</h2>
+            <p>You are buying breakfast. The AI plays the shopkeeper. Complete all three objectives using German.</p>
+            <button class="primary" id="beginRoleplay">Begin Conversation</button>
+          </div>
+          <div class="quest-list">
+            <article class="quest-row"><span class="coin">1</span><div><h3>Ask what is fresh</h3><p>Was ist heute frisch?</p></div><strong>new</strong></article>
+            <article class="quest-row"><span class="coin">2</span><div><h3>Order politely</h3><p>Ich haette gern zwei Broetchen.</p></div><strong>A2</strong></article>
+            <article class="quest-row"><span class="coin">3</span><div><h3>Add a coffee</h3><p>Use “einen Kaffee” correctly.</p></div><strong>fix</strong></article>
+          </div>
+        </section>
+
+        <section class="view" id="drillsView">
+          <div class="section-head">
+            <h2>Arcade Drills</h2>
+            <span>XP rounds</span>
+          </div>
+          <div class="drill-card">
+            <p class="eyebrow">Article Rush</p>
+            <h2 id="drillWord">Kaffee</h2>
+            <p>Pick the correct article before moving on.</p>
+            <div class="article-buttons">
+              <button data-article="der">der</button>
+              <button data-article="die">die</button>
+              <button data-article="das">das</button>
+            </div>
+            <strong id="drillFeedback">Ready</strong>
+          </div>
+          <div class="word-list" id="wordList"></div>
+        </section>
+
+        <section class="view" id="toolsView">
+          <div class="section-head">
+            <h2>AI Tools</h2>
+            <span>Local</span>
+          </div>
+          <form class="tool-box" id="toolForm">
+            <select id="toolSelect" aria-label="Tool">
+              <option value="explain">Explain grammar</option>
+              <option value="translate">Translate</option>
+              <option value="quiz">Quiz me</option>
+              <option value="simplify">Simplify text</option>
+            </select>
+            <textarea id="toolInput" rows="5" placeholder="Paste a phrase, grammar question, or topic."></textarea>
+            <button class="primary">Run Tool</button>
+          </form>
+          <article class="tool-output" id="toolOutput">Your result will appear here.</article>
+        </section>
+      </main>
+
+      <nav class="tabbar" aria-label="Main navigation">
+        <button class="tab active" data-view="homeView"><span>⌂</span><small>Home</small></button>
+        <button class="tab" data-view="chatView"><span>✎</span><small>Chat</small></button>
+        <button class="tab" data-view="roleplayView"><span>★</span><small>Quest</small></button>
+        <button class="tab" data-view="drillsView"><span>⚡</span><small>Drills</small></button>
+        <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
+      </nav>
+    </div>
+    <script src="app.js" defer></script>
+  </body>
+</html>

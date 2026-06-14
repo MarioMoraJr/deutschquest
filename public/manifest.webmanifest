@@ -1,0 +1,17 @@
+{
+  "name": "DeutschQuest",
+  "short_name": "Deutsch",
+  "description": "A mobile-first German learning app with local AI tutoring.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#fff7e6",
+  "theme_color": "#ff6b35",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
