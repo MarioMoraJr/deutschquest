@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614j">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614j">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614k">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614k">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -164,6 +164,32 @@
             </div>
             <strong id="orderFeedback">Build the sentence.</strong>
           </div>
+          <div class="drill-card">
+            <p class="eyebrow">Sentence Repair</p>
+            <h2 id="repairPrompt">Ich gehen nach Hause.</h2>
+            <p>Rewrite the sentence correctly.</p>
+            <div class="input-row">
+              <input id="repairInput" autocomplete="off" placeholder="Correct sentence">
+              <button id="checkRepairButton">Check</button>
+            </div>
+            <strong id="repairFeedback">Find the broken verb or word order.</strong>
+          </div>
+          <div class="drill-card">
+            <p class="eyebrow">Translation Recall</p>
+            <h2 id="translatePrompt">I would like coffee.</h2>
+            <p>Translate naturally into German.</p>
+            <div class="input-row">
+              <input id="translateInput" autocomplete="off" placeholder="German translation">
+              <button id="checkTranslateButton">Check</button>
+            </div>
+            <strong id="translateFeedback">Keep it simple and natural.</strong>
+          </div>
+          <div class="drill-card">
+            <p class="eyebrow">Review Queue</p>
+            <h2 id="reviewWord">Saved words</h2>
+            <p id="reviewMeaning">Review saved vocabulary by weakest strength first.</p>
+            <button class="primary" id="nextReviewButton">Next Word</button>
+          </div>
           <div class="word-list" id="wordList"></div>
         </section>
 
@@ -202,6 +228,16 @@
               <button id="checkConjButton">Check</button>
             </div>
             <strong id="conjFeedback">Use the chart above.</strong>
+          </article>
+          <article class="guide-card">
+            <p class="eyebrow">Quick patterns</p>
+            <h2>When sentence order changes</h2>
+            <div class="rule-list">
+              <div><strong>A</strong><p>Main sentence: verb stays second. <b>Ich trinke Kaffee.</b></p></div>
+              <div><strong>Q</strong><p>Yes/no question: verb goes first. <b>Trinkst du Kaffee?</b></p></div>
+              <div><strong>W</strong><p>Question word first, verb second. <b>Was trinkst du?</b></p></div>
+              <div><strong>D</strong><p>With weil/dass, conjugated verb moves to the end. <b>..., weil ich Kaffee trinke.</b></p></div>
+            </div>
           </article>
         </section>
 
@@ -262,6 +298,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614j" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614k" defer></script>
   </body>
 </html>

@@ -309,6 +309,24 @@ p {
   margin-top: 14px;
 }
 
+.drill-card + .drill-card {
+  margin-top: 14px;
+}
+
+.drill-card .primary {
+  width: 100%;
+}
+
+.drill-card > p {
+  margin-bottom: 0;
+}
+
+.drill-card strong[id$="Feedback"] {
+  min-height: 22px;
+  color: var(--teal);
+  font-size: 0.9rem;
+}
+
 .sentence-build {
   min-height: 52px;
   padding: 8px;

@@ -730,6 +730,25 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "POST" && url.pathname === "/api/drills/check") {
+    const body = await readBody(req);
+    const answer = String(body.answer || "").trim().replace(/\s+/g, " ");
+    const expected = String(body.expected || "").trim().replace(/\s+/g, " ");
+    const kind = String(body.kind || "drill");
+    if (!expected) {
+      sendJson(res, 400, { error: "Expected answer is required." });
+      return;
+    }
+    const correct = answer.toLocaleLowerCase("de-DE") === expected.toLocaleLowerCase("de-DE");
+    const xpDelta = correct ? 12 : 3;
+    state.profile.xp = (state.profile.xp || 0) + xpDelta;
+    state.profile.completedToday = (state.profile.completedToday || 0) + 1;
+    state.currentQuest.progress = Math.min(100, (state.currentQuest.progress || 0) + (correct ? 4 : 1));
+    await writeState(state);
+    sendJson(res, 200, { kind, correct, expected, xpDelta, profile: state.profile, currentQuest: state.currentQuest });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/words") {
     const body = await readBody(req);
     const german = String(body.german || "").trim();

@@ -67,6 +67,17 @@ const els = {
   clearOrderButton: document.querySelector("#clearOrderButton"),
   nextOrderButton: document.querySelector("#nextOrderButton"),
   orderFeedback: document.querySelector("#orderFeedback"),
+  repairPrompt: document.querySelector("#repairPrompt"),
+  repairInput: document.querySelector("#repairInput"),
+  checkRepairButton: document.querySelector("#checkRepairButton"),
+  repairFeedback: document.querySelector("#repairFeedback"),
+  translatePrompt: document.querySelector("#translatePrompt"),
+  translateInput: document.querySelector("#translateInput"),
+  checkTranslateButton: document.querySelector("#checkTranslateButton"),
+  translateFeedback: document.querySelector("#translateFeedback"),
+  reviewWord: document.querySelector("#reviewWord"),
+  reviewMeaning: document.querySelector("#reviewMeaning"),
+  nextReviewButton: document.querySelector("#nextReviewButton"),
   wordList: document.querySelector("#wordList"),
   toolForm: document.querySelector("#toolForm"),
   toolSelect: document.querySelector("#toolSelect"),
@@ -94,6 +105,21 @@ const conjugationDrills = [
 ];
 
 let conjugationIndex = 0;
+let repairIndex = 0;
+let translateIndex = 0;
+let reviewIndex = 0;
+
+const repairDrills = [
+  { broken: "Ich gehen nach Hause.", expected: "Ich gehe nach Hause." },
+  { broken: "Du macht Kaffee.", expected: "Du machst Kaffee." },
+  { broken: "Ich möchte einen Brötchen.", expected: "Ich möchte ein Brötchen." }
+];
+
+const translateDrills = [
+  { prompt: "I would like coffee.", expected: "Ich hätte gern Kaffee." },
+  { prompt: "Where is the train station?", expected: "Wo ist der Bahnhof?" },
+  { prompt: "Can you speak more slowly?", expected: "Können Sie langsamer sprechen?" }
+];
 
 function authHeaders() {
   return state.token ? { Authorization: `Bearer ${state.token}` } : {};
@@ -213,6 +239,9 @@ function renderDrills() {
     })
   );
   renderOrderDrill();
+  renderRepairDrill();
+  renderTranslateDrill();
+  renderReviewQueue();
 }
 
 function renderHistory() {
@@ -582,6 +611,63 @@ els.checkOrderButton.addEventListener("click", async () => {
   renderHome();
 });
 
+function renderRepairDrill() {
+  const drill = repairDrills[repairIndex % repairDrills.length];
+  els.repairPrompt.textContent = drill.broken;
+  els.repairInput.value = "";
+}
+
+function renderTranslateDrill() {
+  const drill = translateDrills[translateIndex % translateDrills.length];
+  els.translatePrompt.textContent = drill.prompt;
+  els.translateInput.value = "";
+}
+
+function renderReviewQueue() {
+  const queue = [...state.words].sort((a, b) => (a.strength || 0) - (b.strength || 0));
+  const word = queue[reviewIndex % Math.max(1, queue.length)];
+  if (!word) {
+    els.reviewWord.textContent = "No saved words";
+    els.reviewMeaning.textContent = "Save vocabulary from chat to build a queue.";
+    return;
+  }
+  els.reviewWord.textContent = word.german;
+  els.reviewMeaning.textContent = `${word.english || "No meaning yet"} · strength ${word.strength}/5`;
+}
+
+async function checkGenericDrill(kind, answer, expected, feedbackEl, onCorrect) {
+  const result = await api("api/drills/check", {
+    method: "POST",
+    body: JSON.stringify({ kind, answer, expected })
+  });
+  state.profile = result.profile;
+  state.currentQuest = result.currentQuest;
+  feedbackEl.textContent = result.correct ? `Richtig! +${result.xpDelta} XP` : `Try: ${result.expected}`;
+  renderHome();
+  if (result.correct && onCorrect) setTimeout(onCorrect, 850);
+}
+
+els.checkRepairButton.addEventListener("click", () => {
+  const drill = repairDrills[repairIndex % repairDrills.length];
+  checkGenericDrill("repair", els.repairInput.value, drill.expected, els.repairFeedback, () => {
+    repairIndex += 1;
+    renderRepairDrill();
+  });
+});
+
+els.checkTranslateButton.addEventListener("click", () => {
+  const drill = translateDrills[translateIndex % translateDrills.length];
+  checkGenericDrill("translation", els.translateInput.value, drill.expected, els.translateFeedback, () => {
+    translateIndex += 1;
+    renderTranslateDrill();
+  });
+});
+
+els.nextReviewButton.addEventListener("click", () => {
+  reviewIndex += 1;
+  renderReviewQueue();
+});
+
 els.toolForm.addEventListener("submit", async event => {
   event.preventDefault();
   const input = els.toolInput.value.trim();
@@ -668,7 +754,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614j`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614k`));
 }
 
 loadApp().catch(error => {
