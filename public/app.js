@@ -336,28 +336,36 @@ async function sendChat(message, mode = "tutor") {
   }
 
   const decoder = new TextDecoder();
+  const reader = response.body.getReader();
   let buffer = "";
-  for await (const chunk of response.body) {
-    buffer += decoder.decode(chunk, { stream: true });
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
     const events = buffer.split("\n\n");
     buffer = events.pop() || "";
     for (const rawEvent of events) {
-      const lines = rawEvent.split("\n");
-      const event = lines.find(line => line.startsWith("event:"))?.slice(6).trim();
-      const dataLine = lines.find(line => line.startsWith("data:"));
-      const data = dataLine ? JSON.parse(dataLine.slice(5)) : {};
-      if (event === "chunk") {
-        pending.textContent += data.chunk || "";
-        els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
-      }
-      if (event === "done") {
-        updateSessionMessages(data.sessionId, data.messages, mode);
-        renderChat();
-      }
-      if (event === "error") {
-        pending.textContent = data.error || "Streaming failed.";
-      }
+      handleStreamEvent(rawEvent, pending, mode);
     }
+  }
+  if (buffer.trim()) handleStreamEvent(buffer, pending, mode);
+}
+
+function handleStreamEvent(rawEvent, pending, mode) {
+  const lines = rawEvent.split("\n");
+  const event = lines.find(line => line.startsWith("event:"))?.slice(6).trim();
+  const dataLine = lines.find(line => line.startsWith("data:"));
+  const data = dataLine ? JSON.parse(dataLine.slice(5)) : {};
+  if (event === "chunk") {
+    pending.textContent += data.chunk || "";
+    els.chatPanel.scrollTop = els.chatPanel.scrollHeight;
+  }
+  if (event === "done") {
+    updateSessionMessages(data.sessionId, data.messages, mode);
+    renderChat();
+  }
+  if (event === "error") {
+    pending.textContent = data.error || "Streaming failed.";
   }
 }
 
@@ -567,7 +575,7 @@ els.backupButton.addEventListener("click", async () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614g`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614h`));
 }
 
 loadApp().catch(error => {
