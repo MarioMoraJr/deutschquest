@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614k">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614k">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614l">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614l">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -95,6 +95,7 @@
             <button id="newChatButton">New Chat</button>
             <button id="toggleHistoryButton" aria-expanded="false">History</button>
             <button id="suggestVocabButton">Suggest Words</button>
+            <button id="summarizeChatButton">Review Chat</button>
             <button id="toggleSaveWordButton" aria-expanded="false">Save Word</button>
           </div>
           <div class="chat-history collapsed" id="chatHistory"></div>
@@ -104,6 +105,7 @@
             <button data-reply="Gib mir einen kleinen Hinweis.">Hint</button>
           </div>
           <div class="chat-panel" id="chatPanel"></div>
+          <article class="chat-summary collapsed" id="chatSummary"></article>
           <div class="vocab-suggestions" id="vocabSuggestions"></div>
           <form class="save-word-form collapsed" id="saveWordForm">
             <input id="saveGerman" autocomplete="off" placeholder="German word">
@@ -241,6 +243,27 @@
           </article>
         </section>
 
+        <section class="view" id="progressView">
+          <div class="section-head">
+            <h2>Progress</h2>
+            <span id="progressLevel">A2</span>
+          </div>
+          <div class="progress-grid">
+            <article><strong id="progressXp">0</strong><span>XP</span></article>
+            <article><strong id="progressSessions">0</strong><span>Chats</span></article>
+            <article><strong id="progressWords">0</strong><span>Words</span></article>
+            <article><strong id="progressReps">0</strong><span>Reps today</span></article>
+          </div>
+          <article class="guide-card">
+            <h2>Weakest words</h2>
+            <div class="word-list compact" id="weakestWords"></div>
+          </article>
+          <article class="guide-card">
+            <h2>Recent corrections</h2>
+            <div class="mistake-list" id="mistakeList"></div>
+          </article>
+        </section>
+
         <section class="view" id="toolsView">
           <div class="section-head">
             <h2>AI Tools</h2>
@@ -295,9 +318,10 @@
         <button class="tab" data-view="roleplayView"><span>Q</span><small>Quest</small></button>
         <button class="tab" data-view="drillsView"><span>XP</span><small>Drills</small></button>
         <button class="tab" data-view="guidesView"><span>G</span><small>Guides</small></button>
+        <button class="tab" data-view="progressView"><span>P</span><small>Progress</small></button>
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614k" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614l" defer></script>
   </body>
 </html>

@@ -530,6 +530,51 @@ async function handleApi(req, res, url) {
     return;
   }
 
+  if (req.method === "GET" && url.pathname === "/api/progress") {
+    const totalMessages = state.sessions.reduce((sum, session) => sum + (session.messages || []).length, 0);
+    const assistantMessages = state.sessions.flatMap(session =>
+      (session.messages || []).filter(message => message.role === "assistant").map(message => message.content)
+    );
+    const likelyMistakes = assistantMessages
+      .filter(content => /correct|correction|natürlicher|try|instead|korrig/i.test(content))
+      .slice(-8)
+      .reverse();
+    const weakestWords = [...state.words]
+      .sort((a, b) => (a.strength || 0) - (b.strength || 0))
+      .slice(0, 8);
+    sendJson(res, 200, {
+      profile: state.profile,
+      totals: {
+        sessions: state.sessions.length,
+        messages: totalMessages,
+        words: state.words.length,
+        scenarios: state.scenarios.length
+      },
+      weakestWords,
+      likelyMistakes
+    });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/chat/summary") {
+    const body = await readBody(req);
+    const session = state.sessions.find(item => item.id === body.sessionId) || state.sessions[0];
+    if (!session) {
+      sendJson(res, 404, { error: "Session not found." });
+      return;
+    }
+    const transcript = (session.messages || []).map(message => `${message.role}: ${message.content}`).join("\n");
+    const prompt = [
+      "Summarize this German learning chat for review.",
+      "Return short sections: Wins, Corrections, Vocabulary, Next practice.",
+      "Keep it concise and useful.",
+      transcript
+    ].join("\n");
+    const summary = await askOllama([{ role: "user", content: prompt }], state.profile.level, "tool");
+    sendJson(res, 200, { summary });
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/backup") {
     const backupPath = createBackup();
     sendJson(res, 200, { backupPath });

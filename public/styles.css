@@ -215,6 +215,20 @@ p {
   display: none;
 }
 
+.chat-summary {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+.chat-summary.collapsed {
+  display: none;
+}
+
 .history-item {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 38px;
@@ -615,6 +629,43 @@ p {
   gap: 10px;
 }
 
+.word-list.compact {
+  margin-top: 10px;
+}
+
+.progress-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.progress-grid article,
+.mistake-list article,
+.empty-state {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.progress-grid strong {
+  display: block;
+  font-size: 1.5rem;
+}
+
+.progress-grid span,
+.mistake-list article,
+.empty-state {
+  color: var(--muted);
+}
+
+.mistake-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
 .quest-row,
 .word-row {
   display: grid;
@@ -777,7 +828,7 @@ select {
   bottom: 0;
   left: 0;
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
+  grid-template-columns: repeat(7, 1fr);
   width: min(100%, 500px);
   margin: 0 auto;
   padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
@@ -795,7 +846,7 @@ select {
   border-radius: 12px;
   background: transparent;
   color: var(--muted);
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 950;
 }
 

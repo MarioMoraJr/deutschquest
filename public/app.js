@@ -43,6 +43,8 @@ const els = {
   toggleHistoryButton: document.querySelector("#toggleHistoryButton"),
   chatHistory: document.querySelector("#chatHistory"),
   suggestVocabButton: document.querySelector("#suggestVocabButton"),
+  summarizeChatButton: document.querySelector("#summarizeChatButton"),
+  chatSummary: document.querySelector("#chatSummary"),
   toggleSaveWordButton: document.querySelector("#toggleSaveWordButton"),
   vocabSuggestions: document.querySelector("#vocabSuggestions"),
   questTitle: document.querySelector("#questTitle"),
@@ -90,6 +92,13 @@ const els = {
   settingsStatus: document.querySelector("#settingsStatus"),
   backupButton: document.querySelector("#backupButton"),
   backupStatus: document.querySelector("#backupStatus"),
+  progressLevel: document.querySelector("#progressLevel"),
+  progressXp: document.querySelector("#progressXp"),
+  progressSessions: document.querySelector("#progressSessions"),
+  progressWords: document.querySelector("#progressWords"),
+  progressReps: document.querySelector("#progressReps"),
+  weakestWords: document.querySelector("#weakestWords"),
+  mistakeList: document.querySelector("#mistakeList"),
   conjPrompt: document.querySelector("#conjPrompt"),
   conjInput: document.querySelector("#conjInput"),
   checkConjButton: document.querySelector("#checkConjButton"),
@@ -169,6 +178,7 @@ function switchView(id) {
   document.querySelectorAll(".tab").forEach(tab => {
     tab.classList.toggle("active", tab.dataset.view === id);
   });
+  if (id === "progressView") loadProgress();
 }
 
 function renderHome() {
@@ -561,6 +571,20 @@ els.suggestVocabButton.addEventListener("click", async () => {
   }));
 });
 
+els.summarizeChatButton.addEventListener("click", async () => {
+  els.chatSummary.classList.remove("collapsed");
+  els.chatSummary.textContent = "Reviewing this chat...";
+  try {
+    const result = await api("api/chat/summary", {
+      method: "POST",
+      body: JSON.stringify({ sessionId: state.sessionId })
+    });
+    els.chatSummary.textContent = result.summary;
+  } catch (error) {
+    els.chatSummary.textContent = error.message;
+  }
+});
+
 els.toggleSaveWordButton.addEventListener("click", () => {
   const collapsed = els.saveWordForm.classList.toggle("collapsed");
   els.toggleSaveWordButton.setAttribute("aria-expanded", String(!collapsed));
@@ -735,6 +759,30 @@ els.backupButton.addEventListener("click", async () => {
   }
 });
 
+async function loadProgress() {
+  const progress = await api("api/progress");
+  els.progressLevel.textContent = progress.profile.level;
+  els.progressXp.textContent = progress.profile.xp;
+  els.progressSessions.textContent = progress.totals.sessions;
+  els.progressWords.textContent = progress.totals.words;
+  els.progressReps.textContent = progress.profile.completedToday || 0;
+  els.weakestWords.replaceChildren(...progress.weakestWords.map(word => {
+    const row = document.createElement("article");
+    row.className = "word-row";
+    row.innerHTML = `<span class="coin">${word.article || "?"}</span><div><h3>${word.german}</h3><p>${word.english || "Saved word"}</p></div><strong>${word.strength}/5</strong>`;
+    return row;
+  }));
+  if (!progress.likelyMistakes.length) {
+    els.mistakeList.innerHTML = `<div class="empty-state">No corrections found yet.</div>`;
+    return;
+  }
+  els.mistakeList.replaceChildren(...progress.likelyMistakes.map(text => {
+    const item = document.createElement("article");
+    item.textContent = text;
+    return item;
+  }));
+}
+
 function renderConjugationDrill() {
   const drill = conjugationDrills[conjugationIndex % conjugationDrills.length];
   els.conjPrompt.textContent = `${drill.verb} + ${drill.subject}`;
@@ -754,7 +802,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614k`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614l`));
 }
 
 loadApp().catch(error => {
