@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614q">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614q">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614r">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614r">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -145,6 +145,10 @@
               <button id="closeLookupButton" aria-label="Close explanation">X</button>
             </div>
             <div id="lookupOutput">Tap a word or sentence to explain it.</div>
+            <div class="lookup-actions">
+              <button id="simplerLookupButton">Simpler</button>
+              <button id="saveLookupButton">Save</button>
+            </div>
           </article>
           <article class="chat-summary collapsed" id="chatSummary"></article>
           <div class="vocab-suggestions" id="vocabSuggestions"></div>
@@ -395,6 +399,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614q" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260614r" defer></script>
   </body>
 </html>

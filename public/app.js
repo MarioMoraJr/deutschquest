@@ -83,6 +83,8 @@ const els = {
   lookupTitle: document.querySelector("#lookupTitle"),
   lookupOutput: document.querySelector("#lookupOutput"),
   closeLookupButton: document.querySelector("#closeLookupButton"),
+  simplerLookupButton: document.querySelector("#simplerLookupButton"),
+  saveLookupButton: document.querySelector("#saveLookupButton"),
   saveWordForm: document.querySelector("#saveWordForm"),
   saveGerman: document.querySelector("#saveGerman"),
   saveEnglish: document.querySelector("#saveEnglish"),
@@ -149,6 +151,7 @@ let translateIndex = 0;
 let reviewIndex = 0;
 let chatAbortController = null;
 let lastChatRequest = null;
+let lastLookup = null;
 
 const repairDrills = [
   { broken: "Ich gehen nach Hause.", expected: "Ich gehe nach Hause." },
@@ -261,7 +264,28 @@ function createBubble(role, content = "") {
   const bubble = document.createElement("div");
   bubble.className = `bubble ${role === "user" ? "user" : "assistant"}`;
   renderTappableText(bubble, content);
+  if (role !== "user" && content.trim()) {
+    bubble.append(createMessageActions(content));
+  }
   return bubble;
+}
+
+function createMessageActions(content) {
+  const actions = document.createElement("div");
+  actions.className = "message-actions";
+  [
+    ["translate", "Translate"],
+    ["simplify", "Simpler"],
+    ["save-words", "Save words"]
+  ].forEach(([action, label]) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.messageAction = action;
+    button.dataset.messageText = content;
+    button.textContent = label;
+    actions.append(button);
+  });
+  return actions;
 }
 
 function renderTappableText(container, content = "") {
@@ -811,22 +835,103 @@ async function explainText(text, kind = "word", context = "") {
   els.lookupPanel.classList.remove("collapsed");
   els.lookupTitle.textContent = kind === "sentence" ? "Sentence meaning" : cleanText;
   els.lookupOutput.textContent = "Asking the teacher...";
+  lastLookup = { text: cleanText, kind, context, answer: "" };
   try {
     const result = await api("api/lookup", {
       method: "POST",
       body: JSON.stringify({ text: cleanText, kind, context })
     });
+    lastLookup = { text: cleanText, kind, context, answer: result.answer };
     els.lookupOutput.textContent = result.answer;
   } catch (error) {
     els.lookupOutput.textContent = error.message;
   }
 }
 
+async function runMessageTool(tool, text) {
+  els.lookupPanel.classList.remove("collapsed");
+  els.lookupTitle.textContent = tool === "translate" ? "Translation" : "Simpler explanation";
+  els.lookupOutput.textContent = tool === "translate" ? "Translating..." : "Making it simpler...";
+  try {
+    const result = await api("api/tools", {
+      method: "POST",
+      body: JSON.stringify({ tool, input: text })
+    });
+    lastLookup = { text, kind: tool, context: text, answer: result.answer };
+    els.lookupOutput.textContent = result.answer;
+  } catch (error) {
+    els.lookupOutput.textContent = error.message;
+  }
+}
+
+async function suggestWordsFromText(text) {
+  els.vocabSuggestions.textContent = "Finding useful words...";
+  const result = await api("api/vocab/suggest", {
+    method: "POST",
+    body: JSON.stringify({ text })
+  });
+  renderVocabSuggestions(result.suggestions || []);
+}
+
+function renderVocabSuggestions(suggestions) {
+  if (!suggestions.length) {
+    els.vocabSuggestions.textContent = "No suggestions found.";
+    return;
+  }
+  els.vocabSuggestions.replaceChildren(...suggestions.map(suggestion => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.innerHTML = `<strong>${suggestion.article ? `${suggestion.article} ` : ""}${suggestion.german}</strong><small>${suggestion.english}</small>`;
+    button.addEventListener("click", async () => {
+      const word = await api("api/words", {
+        method: "POST",
+        body: JSON.stringify(suggestion)
+      });
+      state.words.unshift(word);
+      button.disabled = true;
+      button.querySelector("small").textContent = "Saved";
+      renderDrills();
+    });
+    return button;
+  }));
+}
+
 els.closeLookupButton.addEventListener("click", () => {
   els.lookupPanel.classList.add("collapsed");
 });
 
+els.simplerLookupButton.addEventListener("click", async () => {
+  if (!lastLookup) return;
+  await explainText(lastLookup.text, lastLookup.kind, `Explain this even more simply. ${lastLookup.context || ""}`);
+});
+
+els.saveLookupButton.addEventListener("click", async () => {
+  if (!lastLookup?.text) return;
+  const word = await api("api/words", {
+    method: "POST",
+    body: JSON.stringify({
+      german: lastLookup.text,
+      english: (lastLookup.answer || "Lookup note").replace(/\s+/g, " ").slice(0, 120),
+      article: ""
+    })
+  });
+  state.words.unshift(word);
+  els.saveLookupButton.textContent = "Saved";
+  setTimeout(() => {
+    els.saveLookupButton.textContent = "Save";
+  }, 900);
+  renderDrills();
+});
+
 document.addEventListener("click", event => {
+  const action = event.target.closest("[data-message-action]");
+  if (action) {
+    const text = action.dataset.messageText || "";
+    if (action.dataset.messageAction === "translate") runMessageTool("translate", text);
+    if (action.dataset.messageAction === "simplify") runMessageTool("simplify", text);
+    if (action.dataset.messageAction === "save-words") suggestWordsFromText(text);
+    return;
+  }
   const target = event.target.closest("[data-lookup-text]");
   if (!target) return;
   const bubble = target.closest(".bubble, .lesson-dialogue p, .guide-card");
@@ -857,31 +962,7 @@ document.querySelectorAll("[data-reply]").forEach(button => {
 els.suggestVocabButton.addEventListener("click", async () => {
   const session = state.sessions.find(item => item.id === state.sessionId) || state.sessions[0];
   const text = (session?.messages || []).slice(-4).map(message => message.content).join("\n");
-  els.vocabSuggestions.textContent = "Finding useful words...";
-  const result = await api("api/vocab/suggest", {
-    method: "POST",
-    body: JSON.stringify({ text })
-  });
-  if (!result.suggestions.length) {
-    els.vocabSuggestions.textContent = "No suggestions found.";
-    return;
-  }
-  els.vocabSuggestions.replaceChildren(...result.suggestions.map(suggestion => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.innerHTML = `<strong>${suggestion.article ? `${suggestion.article} ` : ""}${suggestion.german}</strong><small>${suggestion.english}</small>`;
-    button.addEventListener("click", async () => {
-      const word = await api("api/words", {
-        method: "POST",
-        body: JSON.stringify(suggestion)
-      });
-      state.words.unshift(word);
-      button.disabled = true;
-      button.querySelector("small").textContent = "Saved";
-      renderDrills();
-    });
-    return button;
-  }));
+  await suggestWordsFromText(text);
 });
 
 els.summarizeChatButton.addEventListener("click", async () => {
@@ -1146,7 +1227,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614q`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614r`));
 }
 
 loadApp().catch(error => {
