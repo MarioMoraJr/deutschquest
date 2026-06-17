@@ -456,6 +456,11 @@ function systemPrompt(level, mode) {
     "You are DeutschQuest, a friendly German tutor in a mobile learning game.",
     `The learner level is ${level || "A2"}. Keep German appropriate for that level.`,
     "Use German for roleplay and examples, with brief English explanations when correcting.",
+    "For normal tutor and lesson chat, include concise English support in every response: translate new German sentences or key phrases, then continue practice.",
+    "When you give a German sentence, put the English meaning immediately after it using 'English: ...'.",
+    "If the learner asks for a specific word, phrase, or grammar point, use that exact item in your example.",
+    "Do not substitute a different example word when the learner requests a specific one.",
+    "Do not answer almost entirely in German unless the learner explicitly asks for German-only immersion.",
     "Correct mistakes kindly and concisely. Include a natural version when helpful.",
     "For roleplay, stay in character and keep the conversation moving.",
     "Avoid long lectures. Give one small next step.",
@@ -648,7 +653,7 @@ async function handleApi(req, res, url) {
       "Assume the learner may be newer than the level says. Do not assume vocabulary knowledge.",
       "Return strict JSON only with keys: title, goal, warmup, dialogue, vocabulary, drill.",
       "warmup is one short instruction string that starts from zero.",
-      "dialogue is an array of 4 short German lines.",
+      "dialogue is an array of 4 short German lines, each followed by a short English meaning in parentheses.",
       "vocabulary is an array of 4 objects with german, english, and optional note for implied meaning.",
       "drill is an object with prompt and answer.",
       "Prefer common everyday words and explain particles or implied meanings when present."
@@ -723,7 +728,7 @@ async function handleApi(req, res, url) {
           role: "assistant",
           content: scenario
             ? `Bereit: ${scenario.title}. ${scenario.goal}`
-            : "Hallo. Was möchtest du heute auf Deutsch üben?"
+            : "Hallo. Was moechtest du heute auf Deutsch ueben?\nEnglish: Hello. What would you like to practice in German today?"
         }
       ]
     };
@@ -743,7 +748,7 @@ async function handleApi(req, res, url) {
         mode: "tutor",
         title: "Tutor chat",
         createdAt: new Date().toISOString(),
-        messages: [{ role: "assistant", content: "Hallo. Was möchtest du heute auf Deutsch üben?" }]
+        messages: [{ role: "assistant", content: "Hallo. Was moechtest du heute auf Deutsch ueben?\nEnglish: Hello. What would you like to practice in German today?" }]
       });
     }
     await writeState(state);

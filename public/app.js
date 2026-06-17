@@ -281,7 +281,7 @@ function renderChat() {
   document.querySelector("#chatView .section-head h2").textContent = session?.title || "Tutor Chat";
   renderHistory();
   if (!messages.length) {
-    els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was möchtest du heute auf Deutsch üben?</div>`;
+    els.chatPanel.innerHTML = `<div class="bubble assistant">Hallo. Was moechtest du heute auf Deutsch ueben?\nEnglish: Hello. What would you like to practice in German today?</div>`;
     return;
   }
   els.chatPanel.replaceChildren(
