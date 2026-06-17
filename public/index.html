@@ -6,8 +6,8 @@
     <meta name="theme-color" content="#ff6b35">
     <title>DeutschQuest</title>
     <script>window.DEUTSCHQUEST_BASE_PATH = "__BASE_PATH__";</script>
-    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260614t">
-    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260614t">
+    <link rel="manifest" href="__BASE_PATH__/manifest.webmanifest?v=20260617a">
+    <link rel="stylesheet" href="__BASE_PATH__/styles.css?v=20260617a">
   </head>
   <body>
     <div class="auth-screen" id="loginView" hidden>
@@ -71,6 +71,24 @@
             <button id="lessonCoachButton">Lesson Coach</button>
             <button id="logoutButton">Logout</button>
           </div>
+
+          <article class="story-card" id="dailyStoryCard">
+            <div class="section-head compact">
+              <div>
+                <p class="eyebrow">Daily Story</p>
+                <h2 id="dailyStoryTitle">Today&apos;s story</h2>
+              </div>
+              <span id="dailyStoryLevel">A2</span>
+            </div>
+            <p id="dailyStorySummary">Generate a fresh story matched to your profile level.</p>
+            <div class="story-body collapsed" id="dailyStoryBody"></div>
+            <div class="story-vocab" id="dailyStoryVocab"></div>
+            <div class="story-questions" id="dailyStoryQuestions"></div>
+            <div class="story-actions">
+              <button id="generateStoryButton">Generate Story</button>
+              <button id="refreshStoryButton">Refresh Today</button>
+            </div>
+          </article>
 
           <article class="lesson-card" id="startHereCard">
             <div class="section-head compact">
@@ -408,6 +426,6 @@
         <button class="tab" data-view="toolsView"><span>?</span><small>Tools</small></button>
       </nav>
     </div>
-    <script src="__BASE_PATH__/app.js?v=20260614t" defer></script>
+    <script src="__BASE_PATH__/app.js?v=20260617a" defer></script>
   </body>
 </html>

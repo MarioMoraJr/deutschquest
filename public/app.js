@@ -12,6 +12,7 @@ const state = {
   currentQuest: {},
   words: [],
   lessons: [],
+  dailyStory: null,
   scenarios: [],
   sessions: [],
   sessionId: null,
@@ -89,6 +90,14 @@ const els = {
   lessonCoachButton: document.querySelector("#lessonCoachButton"),
   lessonPath: document.querySelector("#lessonPath"),
   logoutButton: document.querySelector("#logoutButton"),
+  dailyStoryTitle: document.querySelector("#dailyStoryTitle"),
+  dailyStoryLevel: document.querySelector("#dailyStoryLevel"),
+  dailyStorySummary: document.querySelector("#dailyStorySummary"),
+  dailyStoryBody: document.querySelector("#dailyStoryBody"),
+  dailyStoryVocab: document.querySelector("#dailyStoryVocab"),
+  dailyStoryQuestions: document.querySelector("#dailyStoryQuestions"),
+  generateStoryButton: document.querySelector("#generateStoryButton"),
+  refreshStoryButton: document.querySelector("#refreshStoryButton"),
   lessonCard: document.querySelector("#lessonCard"),
   lessonTitle: document.querySelector("#lessonTitle"),
   lessonGoal: document.querySelector("#lessonGoal"),
@@ -465,6 +474,44 @@ function render() {
   renderDrills();
   renderPastLessons();
   renderLessonPath();
+  renderDailyStory();
+}
+
+function renderDailyStory() {
+  if (!els.dailyStoryTitle) return;
+  const story = state.dailyStory;
+  els.dailyStoryLevel.textContent = state.profile.level || "A2";
+  if (!story) {
+    els.dailyStoryTitle.textContent = "Today's story";
+    els.dailyStorySummary.textContent = "Generate a fresh mid-to-long story matched to your profile level.";
+    els.dailyStoryBody.classList.add("collapsed");
+    els.dailyStoryBody.textContent = "";
+    els.dailyStoryVocab.innerHTML = "";
+    els.dailyStoryQuestions.innerHTML = "";
+    els.generateStoryButton.textContent = "Generate Story";
+    return;
+  }
+  els.dailyStoryTitle.textContent = story.title || "Daily Story";
+  els.dailyStoryLevel.textContent = story.level || state.profile.level || "A2";
+  els.dailyStorySummary.textContent = story.summary || "Today's German story.";
+  els.dailyStoryBody.classList.remove("collapsed");
+  renderTappableText(els.dailyStoryBody, story.body || "");
+  const vocabulary = Array.isArray(story.vocabulary) ? story.vocabulary : [];
+  els.dailyStoryVocab.replaceChildren(...vocabulary.map(item => {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.dataset.lookupText = item.german || "";
+    chip.dataset.lookupKind = "word";
+    chip.innerHTML = `<strong>${item.german || ""}</strong><small>${item.english || ""}${item.note ? ` - ${item.note}` : ""}</small>`;
+    return chip;
+  }));
+  const questions = Array.isArray(story.questions) ? story.questions : [];
+  els.dailyStoryQuestions.replaceChildren(...questions.map((question, index) => {
+    const item = document.createElement("p");
+    item.textContent = `${index + 1}. ${question}`;
+    return item;
+  }));
+  els.generateStoryButton.textContent = "Read Today";
 }
 
 function renderLessonPath() {
@@ -506,6 +553,7 @@ async function loadApp() {
   state.currentQuest = data.currentQuest;
   state.words = data.words || [];
   state.lessons = data.lessons || [];
+  state.dailyStory = data.dailyStory || null;
   state.scenarios = data.scenarios || [];
   state.sessions = data.sessions || [];
   state.sessionId = state.sessions[0]?.id || null;
@@ -757,6 +805,34 @@ els.generateLessonButton.addEventListener("click", async () => {
     els.generateLessonButton.textContent = "Generate Lesson";
   }
 });
+
+async function loadDailyStory(force = false) {
+  const button = force ? els.refreshStoryButton : els.generateStoryButton;
+  button.textContent = force ? "Refreshing..." : "Generating...";
+  try {
+    const result = await api("api/story/daily", {
+      method: "POST",
+      body: JSON.stringify({ force })
+    });
+    state.dailyStory = result.story;
+    renderDailyStory();
+  } catch (error) {
+    els.dailyStorySummary.textContent = error.message;
+  } finally {
+    els.generateStoryButton.textContent = state.dailyStory ? "Read Today" : "Generate Story";
+    els.refreshStoryButton.textContent = "Refresh Today";
+  }
+}
+
+els.generateStoryButton.addEventListener("click", async () => {
+  if (state.dailyStory) {
+    els.dailyStoryBody.classList.toggle("collapsed");
+    return;
+  }
+  await loadDailyStory(false);
+});
+
+els.refreshStoryButton.addEventListener("click", () => loadDailyStory(true));
 
 els.lessonCoachButton.addEventListener("click", async () => {
   const topic = els.lessonTopicInput.value.trim() || "German from zero";
@@ -1325,7 +1401,7 @@ els.checkConjButton.addEventListener("click", () => {
 });
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260614t`));
+  window.addEventListener("load", () => navigator.serviceWorker.register(`${BASE_PATH}/service-worker.js?v=20260617a`));
 }
 
 loadApp().catch(error => {

@@ -733,6 +733,87 @@ p {
   background: rgba(255, 255, 255, 0.68);
 }
 
+.story-card {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(139, 92, 246, 0.22);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 16px 42px rgba(80, 46, 26, 0.1);
+}
+
+.story-body {
+  max-height: 420px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fffaf0;
+  color: var(--ink);
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.story-body.collapsed {
+  display: none;
+}
+
+.story-vocab {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.story-vocab button {
+  display: grid;
+  gap: 3px;
+  min-height: 58px;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(15, 118, 110, 0.1);
+  color: var(--teal);
+  text-align: left;
+}
+
+.story-vocab small {
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.story-questions {
+  display: grid;
+  gap: 6px;
+}
+
+.story-questions p {
+  margin: 0;
+  padding: 9px;
+  border-radius: 8px;
+  background: rgba(255, 250, 240, 0.72);
+  font-size: 0.86rem;
+}
+
+.story-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.story-actions button {
+  min-height: 42px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff7e6;
+  font-weight: 950;
+}
+
+.story-actions button:last-child {
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--violet);
+}
+
 .lesson-card.collapsed {
   display: none;
 }

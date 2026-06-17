@@ -215,6 +215,19 @@ function initializeDatabase() {
       created_at TEXT NOT NULL,
       completed_at TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS daily_stories (
+      id TEXT PRIMARY KEY,
+      story_date TEXT NOT NULL,
+      level TEXT NOT NULL,
+      title TEXT NOT NULL,
+      summary TEXT NOT NULL,
+      body TEXT NOT NULL,
+      vocabulary TEXT NOT NULL,
+      questions TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(story_date, level)
+    );
   `);
 
   ensureColumn("words", "next_review_at", "TEXT");
@@ -240,11 +253,102 @@ function ensureColumn(table, column, definition) {
   db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
 }
 
+function todayKey(date = new Date()) {
+  return date.toISOString().slice(0, 10);
+}
+
+function currentDailyStory(state) {
+  const date = todayKey();
+  const level = state.profile?.level || "A2";
+  return (state.dailyStories || []).find(story => story.date === date && story.level === level) || null;
+}
+
+async function generateDailyStory(state, force = false) {
+  const date = todayKey();
+  const level = state.profile?.level || "A2";
+  const existing = currentDailyStory(state);
+  if (existing && !force) return existing;
+
+  const prompt = [
+    `Write a daily German story for a ${level} learner.`,
+    "The story must be mid to long, not short: 650 to 900 German words for B1/B2, 450 to 650 German words for A1/A2.",
+    "Use vocabulary and grammar appropriate to the level, but include natural repeated phrases.",
+    "Include English help without overwhelming the story.",
+    "Return strict JSON only with keys: title, summary, body, vocabulary, questions.",
+    "summary is 1 concise English sentence.",
+    "body is the full German story with occasional parenthetical English hints after harder phrases.",
+    "vocabulary is an array of 8 objects with german, english, and note.",
+    "questions is an array of 5 simple comprehension questions in English."
+  ].join("\n");
+
+  const raw = await askOllama([{ role: "user", content: prompt }], level, "lesson", 2200, "json", 8192);
+  const json = raw.match(/\{[\s\S]*\}/)?.[0] || "";
+  let parsed;
+  try {
+    parsed = JSON.parse(json);
+  } catch {
+    parsed = {
+      title: `Daily Story ${date}`,
+      summary: `A ${level} German story for today.`,
+      body: raw,
+      vocabulary: [],
+      questions: []
+    };
+  }
+
+  const minBodyChars = ["B1", "B2"].includes(level) ? 3200 : 2200;
+  const maxContinuations = 5;
+  let continuations = 0;
+  while (String(parsed.body || "").length < minBodyChars && continuations < maxContinuations) {
+    continuations += 1;
+    const currentBody = String(parsed.body || raw);
+    const continuePrompt = [
+      `Continue this ${level} German learner story. Do not repeat or summarize what came before.`,
+      "Write only the next part of the story in German, continuing naturally from where it left off.",
+      "Keep the same characters, tone, and vocabulary/grammar level as the existing text.",
+      "Include occasional parenthetical English hints after harder phrases, like the rest of the story.",
+      "Return strict JSON with a single key: continuation, holding the next part of the story in German.",
+      `Story so far: ${currentBody}`
+    ].join("\n");
+    const continuationRaw = await askOllama([{ role: "user", content: continuePrompt }], level, "lesson", 2000, "json", 8192);
+    const continuationJson = continuationRaw.match(/\{[\s\S]*\}/)?.[0] || "";
+    let continuationText = "";
+    try {
+      continuationText = String(JSON.parse(continuationJson).continuation || "");
+    } catch {
+      continuationText = continuationRaw;
+    }
+    continuationText = continuationText.trim();
+    if (!continuationText) break;
+    parsed.body = `${currentBody}\n\n${continuationText}`;
+  }
+
+  const story = {
+    id: crypto.randomUUID(),
+    date,
+    level,
+    title: String(parsed.title || `Daily Story ${date}`),
+    summary: String(parsed.summary || `A ${level} German story for today.`),
+    body: String(parsed.body || raw),
+    vocabulary: Array.isArray(parsed.vocabulary) ? parsed.vocabulary : [],
+    questions: Array.isArray(parsed.questions) ? parsed.questions : [],
+    createdAt: new Date().toISOString()
+  };
+
+  state.dailyStories = [
+    story,
+    ...(state.dailyStories || []).filter(item => !(item.date === date && item.level === level))
+  ];
+  await writeState(state);
+  return story;
+}
+
 async function readState() {
   const profile = db.prepare("SELECT * FROM profile WHERE id = 1").get();
   const quest = db.prepare("SELECT * FROM current_quest WHERE id = 1").get();
   const words = db.prepare("SELECT * FROM words ORDER BY rowid").all();
   const lessons = db.prepare("SELECT * FROM lessons ORDER BY datetime(created_at) DESC").all();
+  const dailyStories = db.prepare("SELECT * FROM daily_stories ORDER BY story_date DESC, datetime(created_at) DESC").all();
   const scenarios = db.prepare("SELECT * FROM scenarios ORDER BY rowid").all();
   const sessionRows = db.prepare("SELECT * FROM sessions ORDER BY datetime(created_at) DESC").all();
   const messageRows = db.prepare("SELECT * FROM messages ORDER BY position, id").all();
@@ -283,6 +387,17 @@ async function readState() {
       completed: Boolean(lesson.completed),
       createdAt: lesson.created_at,
       completedAt: lesson.completed_at
+    })),
+    dailyStories: dailyStories.map(story => ({
+      id: story.id,
+      date: story.story_date,
+      level: story.level,
+      title: story.title,
+      summary: story.summary,
+      body: story.body,
+      vocabulary: JSON.parse(story.vocabulary || "[]"),
+      questions: JSON.parse(story.questions || "[]"),
+      createdAt: story.created_at
     })),
     scenarios: scenarios.map(scenario => ({
       id: scenario.id,
@@ -326,6 +441,7 @@ async function readState() {
     }));
   });
   state.currentQuest = { ...defaultState.currentQuest, ...(state.currentQuest || {}) };
+  state.dailyStories = Array.isArray(state.dailyStories) ? state.dailyStories : [];
   return state;
 }
 
@@ -341,13 +457,14 @@ function writeStateSync(state) {
     currentQuest: { ...defaultState.currentQuest, ...(state.currentQuest || {}) },
     words: Array.isArray(state.words) ? state.words : defaultState.words,
     lessons: Array.isArray(state.lessons) ? state.lessons : [],
+    dailyStories: Array.isArray(state.dailyStories) ? state.dailyStories : [],
     scenarios: Array.isArray(state.scenarios) ? state.scenarios : defaultState.scenarios,
     sessions: Array.isArray(state.sessions) ? state.sessions : defaultState.sessions
   };
 
   db.exec("BEGIN");
   try {
-    db.exec("DELETE FROM lessons; DELETE FROM messages; DELETE FROM sessions; DELETE FROM scenarios; DELETE FROM words; DELETE FROM current_quest; DELETE FROM profile;");
+    db.exec("DELETE FROM daily_stories; DELETE FROM lessons; DELETE FROM messages; DELETE FROM sessions; DELETE FROM scenarios; DELETE FROM words; DELETE FROM current_quest; DELETE FROM profile;");
     db.prepare(`
       INSERT INTO profile (id, name, level, streak, xp, daily_goal, completed_today)
       VALUES (1, ?, ?, ?, ?, ?, ?)
@@ -386,6 +503,21 @@ function writeStateSync(state) {
         lesson.completed ? 1 : 0,
         lesson.createdAt || new Date().toISOString(),
         lesson.completedAt || null
+      );
+    });
+
+    const insertDailyStory = db.prepare("INSERT INTO daily_stories (id, story_date, level, title, summary, body, vocabulary, questions, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    normalized.dailyStories.forEach(story => {
+      insertDailyStory.run(
+        story.id || crypto.randomUUID(),
+        story.date || todayKey(),
+        story.level || normalized.profile.level || "A2",
+        story.title || "Daily Story",
+        story.summary || "",
+        story.body || "",
+        JSON.stringify(story.vocabulary || []),
+        JSON.stringify(story.questions || []),
+        story.createdAt || new Date().toISOString()
       );
     });
 
@@ -477,17 +609,19 @@ function systemPrompt(level, mode) {
   return base.join("\n");
 }
 
-async function askOllama(messages, level, mode) {
+async function askOllama(messages, level, mode, numPredict = 260, format = null, numCtx = null) {
   const response = await fetch(`${OLLAMA_URL}/api/chat`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       model: OLLAMA_MODEL,
       stream: false,
+      ...(format ? { format } : {}),
       messages: [{ role: "system", content: systemPrompt(level, mode) }, ...messages],
       options: {
         temperature: mode === "drill" ? 0.35 : 0.7,
-        num_predict: 260
+        num_predict: numPredict,
+        ...(numCtx ? { num_ctx: numCtx } : {})
       }
     })
   });
@@ -580,9 +714,17 @@ async function handleApi(req, res, url) {
   if (req.method === "GET" && url.pathname === "/api/app") {
     sendJson(res, 200, {
       ...state,
+      dailyStory: currentDailyStory(state),
       ollama: { url: OLLAMA_URL, model: OLLAMA_MODEL },
       basePath: BASE_PATH
     });
+    return;
+  }
+
+  if (req.method === "POST" && url.pathname === "/api/story/daily") {
+    const body = await readBody(req);
+    const story = await generateDailyStory(state, Boolean(body.force));
+    sendJson(res, 200, { story });
     return;
   }
 
